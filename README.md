@@ -208,5 +208,5 @@ If no one bet on the winning alliance, the team pool carries forward.
 If only one alliance had bets on a match, those bets are refunded.
 
 # AI DISCLAIMER
-See my buzzers project
+See my buzzers project for a better explanation\
 TLDR: Started as learning thing I thought I could learn from, got useful, got complicated, got to be a mess
