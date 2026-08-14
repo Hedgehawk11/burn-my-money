@@ -11,6 +11,26 @@ const betTableWrap = document.getElementById("betTableWrap");
 const debtSummaryWrap = document.getElementById("debtSummaryWrap");
 const debtTableWrap = document.getElementById("debtTableWrap");
 const toast = document.getElementById("toast");
+const themeBtn = document.getElementById("themeBtn");
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  themeBtn.textContent = theme === "dark" ? "Light" : "Dark";
+  localStorage.setItem("burnmoney-theme", theme);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("burnmoney-theme");
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  applyTheme(saved || (prefersDark ? "dark" : "light"));
+}
+
+themeBtn.addEventListener("click", () => {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(next);
+});
+
+initTheme();
 
 const createUserForm = document.getElementById("createUserForm");
 const deleteUserForm = document.getElementById("deleteUserForm");
@@ -227,7 +247,7 @@ function renderAdminState(state) {
       </thead>
       <tbody>${rows}</tbody>
     </table>
-    <p style="padding:0.75rem; margin:0; border-top:1px solid #ddd;">Pool Balance: <strong>${state.poolBalance}</strong></p>
+    <p style="padding:0.75rem; margin:0; border-top:1px solid var(--row-border);">Pool Balance: <strong>${state.poolBalance}</strong></p>
   `;
 }
 

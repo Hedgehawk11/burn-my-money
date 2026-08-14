@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   --bg: #f4efe3;
   --ink: #14213d;
   --ink-soft: #22345f;
@@ -10,6 +11,45 @@
   --ok: #1f7a1f;
   --danger: #b00020;
   --shadow: 0 20px 45px #14213d1f;
+  --surface: #ffffff;
+  --surface-ghost: #ffffffd9;
+  --row-border: #dddddd;
+  --head-bg: #f5efe1;
+  --bg-grad:
+    radial-gradient(circle at 8% 15%, #f1c77f 0%, #f1c77f00 28%),
+    radial-gradient(circle at 88% 70%, #da6f3f66 0%, #da6f3f00 30%),
+    linear-gradient(140deg, #fbf8f1 0%, #f3e9d2 45%, #f9f4e8 100%);
+  --ambient-a: #c58940;
+  --ambient-b: #d6451b66;
+  --toast-bg: #22345fe0;
+  --toast-ok: #1f7a1fe0;
+  --toast-error: #b00020e0;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1116;
+  --ink: #e6e9ef;
+  --ink-soft: #aab3c9;
+  --signal: #e8663a;
+  --signal-dark: #b9441e;
+  --gold: #d9a441;
+  --card: #161b27cc;
+  --line: #ffffff2e;
+  --ok: #4ca44f;
+  --danger: #ff6b6b;
+  --shadow: 0 20px 45px #00000066;
+  --surface: #1b2130;
+  --surface-ghost: #1b2130d9;
+  --row-border: #ffffff24;
+  --head-bg: #232a3c;
+  --bg-grad:
+    radial-gradient(circle at 8% 15%, #5a3d12 0%, #5a3d1200 28%),
+    radial-gradient(circle at 88% 70%, #a33a1f55 0%, #a33a1f00 30%),
+    linear-gradient(140deg, #0c0f16 0%, #141826 45%, #10141d 100%);
+  --ambient-a: #6b4a1e;
+  --ambient-b: #a33a1f55;
+  --toast-bg: #2a3350f2;
 }
 
 * {
@@ -25,10 +65,7 @@ body {
   min-height: 100vh;
   font-family: "IBM Plex Mono", monospace;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 8% 15%, #f1c77f 0%, #f1c77f00 28%),
-    radial-gradient(circle at 88% 70%, #da6f3f66 0%, #da6f3f00 30%),
-    linear-gradient(140deg, #fbf8f1 0%, #f3e9d2 45%, #f9f4e8 100%);
+  background: var(--bg-grad);
   padding: 1.5rem;
 }
 
@@ -44,7 +81,7 @@ body {
 .ambient-a {
   width: 300px;
   height: 300px;
-  background: #c58940;
+  background: var(--ambient-a);
   top: -120px;
   right: -110px;
 }
@@ -52,7 +89,7 @@ body {
 .ambient-b {
   width: 250px;
   height: 250px;
-  background: #d6451b66;
+  background: var(--ambient-b);
   bottom: -100px;
   left: -70px;
 }
@@ -64,6 +101,12 @@ body {
   justify-content: space-between;
   align-items: end;
   gap: 1rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .kicker {
@@ -138,7 +181,7 @@ input,
 select {
   width: 100%;
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   border-radius: 10px;
   padding: 0.6rem 0.7rem;
@@ -165,7 +208,7 @@ button:active {
 }
 
 .ghost {
-  background: #ffffffd9;
+  background: var(--surface-ghost);
   color: var(--ink);
   border: 2px solid var(--line);
 }
@@ -181,7 +224,7 @@ button:active {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 0.55rem;
-  background: #fff;
+  background: var(--surface);
 }
 
 .stat-label {
@@ -201,7 +244,7 @@ button:active {
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
 }
 
 table {
@@ -213,13 +256,13 @@ table {
 th,
 td {
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--row-border);
   padding: 0.6rem 0.7rem;
   font-size: 0.9rem;
 }
 
 th {
-  background: #f5efe1;
+  background: var(--head-bg);
 }
 
 .admin-grid {
@@ -232,7 +275,7 @@ th {
 .panel-block {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
   padding: 0.8rem;
 }
 
@@ -251,7 +294,7 @@ th {
   border-radius: 11px;
   padding: 0.7rem 0.85rem;
   color: #fff;
-  background: #22345fe0;
+  background: var(--toast-bg);
   transform: translateY(30px);
   opacity: 0;
   transition: transform 220ms ease, opacity 220ms ease;
@@ -264,11 +307,11 @@ th {
 }
 
 #toast.ok {
-  background: #1f7a1fe0;
+  background: var(--toast-ok);
 }
 
 #toast.error {
-  background: #b00020e0;
+  background: var(--toast-error);
 }
 
 .reveal {
@@ -293,6 +336,34 @@ th {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg: #0e1116;
+    --ink: #e6e9ef;
+    --ink-soft: #aab3c9;
+    --signal: #e8663a;
+    --signal-dark: #b9441e;
+    --gold: #d9a441;
+    --card: #161b27cc;
+    --line: #ffffff2e;
+    --ok: #4ca44f;
+    --danger: #ff6b6b;
+    --shadow: 0 20px 45px #00000066;
+    --surface: #1b2130;
+    --surface-ghost: #1b2130d9;
+    --row-border: #ffffff24;
+    --head-bg: #232a3c;
+    --bg-grad:
+      radial-gradient(circle at 8% 15%, #5a3d12 0%, #5a3d1200 28%),
+      radial-gradient(circle at 88% 70%, #a33a1f55 0%, #a33a1f00 30%),
+      linear-gradient(140deg, #0c0f16 0%, #141826 45%, #10141d 100%);
+    --ambient-a: #6b4a1e;
+    --ambient-b: #a33a1f55;
+    --toast-bg: #2a3350f2;
   }
 }
 
