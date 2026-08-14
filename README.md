@@ -282,7 +282,3 @@ If only one alliance had bets on a match, those bets are refunded.
 ## Mongo Connection
 
 Configured in .env via MONGODB_URI.
-
-Provided Atlas connection template used in .env.example:
-
-mongodb+srv://Yoda:UseTHeFOrce@burn-my-money.oir3oyi.mongodb.net/frc-gambling?retryWrites=true&w=majority&appName=burn-my-money
