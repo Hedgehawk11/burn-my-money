@@ -98,6 +98,16 @@ usernameInput.addEventListener("input", () => {
   teamLoadTimer = setTimeout(loadTeamsForUsername, 300);
 });
 
+const matchIdInput = document.getElementById("matchId");
+const resolveMatchIdInput = document.getElementById("resolveMatchId");
+
+matchIdInput.addEventListener("input", () => {
+  const matchId = matchIdInput.value.trim();
+  if (matchId && !resolveMatchIdInput.value.trim()) {
+    resolveMatchIdInput.value = matchId;
+  }
+});
+
 function clearSession() {
   token = "";
   currentUser = null;
@@ -582,7 +592,7 @@ createUserForm.addEventListener("submit", async (event) => {
   }
 
   const username = document.getElementById("newUsername").value.trim();
-  const password = document.getElementById("newPassword").value;
+  const password = document.getElementById("newMemberPassword").value;
   const initialBalanceRaw = document.getElementById("initialBalance").value;
   const initialBalance = initialBalanceRaw ? Number.parseInt(initialBalanceRaw, 10) : 0;
 
