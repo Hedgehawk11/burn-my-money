@@ -26,8 +26,10 @@ Rules implemented:
 - JWT auth
 
 ## Quick Start
-### If you just want your team to just be added into the main vercel instance, just create an issue, i'll get you set up
 
+#### If you just want your team to just be added into the main vercel instance, just create an issue, i'll get you set up
+
+## Self host
 
 1. Install dependencies:
 
