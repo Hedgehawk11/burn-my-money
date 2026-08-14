@@ -5,10 +5,11 @@ const User = require("../models/User");
 const Team = require("../models/Team");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
+const { loginLimiter } = require("../middleware/rateLimit");
 
 const router = express.Router();
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     const { username, password, teamId } = req.body;
 

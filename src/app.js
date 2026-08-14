@@ -6,13 +6,16 @@ const authRoutes = require("./routes/authRoutes");
 const betRoutes = require("./routes/betRoutes");
 const teamRoutes = require("./routes/teamRoutes");
 const superRoutes = require("./routes/superRoutes");
+const { globalLimiter } = require("./middleware/rateLimit");
 
 const app = express();
 const publicDir = path.join(__dirname, "..", "public");
 
+app.set("trust proxy", 1);
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
+app.use(globalLimiter);
 app.use(express.static(publicDir, { redirect: false }));
 
 app.get("/health", (req, res) => {
