@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Burn My Money</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-a" aria-hidden="true"></div>
+    <div class="ambient ambient-b" aria-hidden="true"></div>
+
+    <header class="site-header reveal">
+      <div>
+        <p class="kicker">FRC Betting Control Room</p>
+        <h1>Burn My Money</h1>
+      </div>
+      <button id="logoutBtn" class="ghost" hidden>Log Out</button>
+    </header>
+
+    <main>
+      <section class="card reveal" id="authCard">
+        <h2>Sign In</h2>
+        <p>Use your account to place bets.</p>
+        <form id="loginForm" class="form-grid">
+          <label>
+            Username
+            <input type="text" id="username" required />
+          </label>
+          <label>
+            Password
+            <input type="password" id="password" required />
+          </label>
+          <label id="teamField" hidden>
+            Team
+            <select id="loginTeam"></select>
+          </label>
+          <button type="submit">Login</button>
+        </form>
+      </section>
+
+      <section class="grid" id="appSections" hidden>
+        <article class="card reveal">
+          <h2>Account</h2>
+          <div class="stats" id="accountStats"></div>
+          <form id="changePasswordForm" class="form-grid compact">
+            <h3>Change Password</h3>
+            <input type="password" id="currentPassword" placeholder="current password" required />
+            <input type="password" id="newPassword" placeholder="new password" minlength="6" required />
+            <input type="password" id="confirmNewPassword" placeholder="confirm new password" minlength="6" required />
+            <button type="submit">Update Password</button>
+          </form>
+        </article>
+
+        <article class="card reveal">
+          <h2>Place Bet</h2>
+          <form id="betForm" class="form-grid compact">
+            <label>
+              Match ID
+              <input type="text" id="matchId" placeholder="2026miket_qm12" required />
+            </label>
+            <label>
+              Alliance
+              <select id="alliance" required>
+                <option value="red">Red</option>
+                <option value="blue">Blue</option>
+              </select>
+            </label>
+            <label>
+              Amount
+              <input type="number" id="amount" min="1" step="1" required />
+            </label>
+            <button type="submit">Submit Bet</button>
+          </form>
+        </article>
+
+        <article class="card reveal span-2">
+          <h2>My Bets</h2>
+          <div id="betTableWrap" class="table-wrap"></div>
+        </article>
+      </section>
+
+      <section class="card reveal" id="teamPanel" hidden>
+        <h2>Team Admin Panel</h2>
+        <p>Manage your team: create accounts, mint/burn balance, resolve matches, and review debts.</p>
+
+        <div class="admin-grid">
+          <form id="createUserForm" class="form-grid compact panel-block">
+            <h3>Create Member</h3>
+            <input type="text" id="newUsername" placeholder="username" required />
+            <input type="password" id="newPassword" placeholder="password" required />
+            <input type="number" id="initialBalance" placeholder="initial balance" min="0" step="1" />
+            <button type="submit">Create</button>
+          </form>
+
+          <form id="deleteUserForm" class="form-grid compact panel-block">
+            <h3>Delete Member</h3>
+            <input type="text" id="deleteUsername" placeholder="username" required />
+            <label class="inline-check">
+              <input type="checkbox" id="burnBalance" /> Burn balance
+            </label>
+            <button type="submit">Delete</button>
+          </form>
+
+          <form id="adjustBalanceForm" class="form-grid compact panel-block">
+            <h3>Adjust Balance</h3>
+            <input type="text" id="adjustUsername" placeholder="username" required />
+            <select id="balanceMode">
+              <option value="add">Add (mint)</option>
+              <option value="remove">Remove (burn)</option>
+            </select>
+            <input type="number" id="adjustAmount" placeholder="amount" min="1" step="1" required />
+            <button type="submit">Apply</button>
+          </form>
+
+          <form id="resolveMatchForm" class="form-grid compact panel-block">
+            <h3>Resolve Match</h3>
+            <input type="text" id="resolveMatchId" placeholder="match id" required />
+            <select id="winningAlliance">
+              <option value="red">Red wins</option>
+              <option value="blue">Blue wins</option>
+            </select>
+            <button type="submit">Resolve + Payout</button>
+          </form>
+        </div>
+
+        <div>
+          <button id="refreshStateBtn" class="ghost">Refresh Team State</button>
+          <div id="adminState" class="table-wrap"></div>
+        </div>
+
+        <div>
+          <h3>Debt Report</h3>
+          <p>Who owes who and how much based on settled matches in your team.</p>
+          <div id="debtSummaryWrap" class="table-wrap"></div>
+          <div id="debtTableWrap" class="table-wrap"></div>
+        </div>
+      </section>
+
+      <section class="card reveal" id="superPanel" hidden>
+        <h2>Superuser Panel</h2>
+        <p>Create teams with one admin each. Team admins manage their own members and matches.</p>
+
+        <div class="admin-grid">
+          <form id="createTeamForm" class="form-grid compact panel-block">
+            <h3>Create Team</h3>
+            <input type="text" id="teamName" placeholder="team name" required />
+            <input type="text" id="teamAdminUsername" placeholder="admin username" required />
+            <input type="password" id="teamAdminPassword" placeholder="admin password" required />
+            <input type="number" id="teamAdminBalance" placeholder="initial balance" min="0" step="1" />
+            <button type="submit">Create</button>
+          </form>
+
+          <form id="changeAdminForm" class="form-grid compact panel-block">
+            <h3>Change Admin</h3>
+            <select id="changeAdminTeam" required>
+              <option value="">Select team</option>
+            </select>
+            <select id="changeAdminMember" required>
+              <option value="">Select member</option>
+            </select>
+            <button type="submit">Set Admin</button>
+          </form>
+        </div>
+
+        <div>
+          <button id="refreshTeamsBtn" class="ghost">Refresh Teams</button>
+          <div id="teamsWrap" class="table-wrap"></div>
+        </div>
+      </section>
+    </main>
+
+    <aside id="toast" aria-live="polite"></aside>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
