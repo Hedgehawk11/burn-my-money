@@ -213,6 +213,28 @@ button:active {
   border: 2px solid var(--line);
 }
 
+.btn-mini {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.78rem;
+  border-radius: 7px;
+}
+
+.ghost.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.funds-display {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.funds-display .stat {
+  background: var(--card);
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

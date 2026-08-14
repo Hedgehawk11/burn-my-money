@@ -35,6 +35,10 @@ const matchResultSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    debtsCreated: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

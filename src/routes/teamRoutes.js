@@ -1,6 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const Bet = require("../models/Bet");
+const Debt = require("../models/Debt");
 const MatchResult = require("../models/MatchResult");
 const User = require("../models/User");
 const Team = require("../models/Team");
@@ -118,6 +119,7 @@ router.delete("/users/:username", async (req, res) => {
     }
 
     const removedBalance = user.balance;
+    await Debt.deleteMany({ $or: [{ from: user._id }, { to: user._id }] });
     await user.deleteOne();
 
     return res.json({
@@ -242,79 +244,57 @@ router.post("/matches/resettle", async (req, res) => {
 router.get("/debts", async (req, res) => {
   try {
     const teamId = req.user.teamId;
-    const results = await MatchResult.find({ teamId }).select("matchId winningAlliance");
-
-    const rawDebts = new Map();
+    const results = await MatchResult.find({ teamId, debtsCreated: { $ne: true } }).select(
+      "matchId winningAlliance"
+    );
 
     for (const result of results) {
-      const bets = await Bet.find({ matchId: result.matchId, teamId, settled: true }).populate(
-        "user",
-        "username"
+      const bets = await Bet.find({ matchId: result.matchId, teamId, settled: true }).select(
+        "user alliance amount"
       );
       const winners = bets.filter((bet) => bet.alliance === result.winningAlliance);
       const losers = bets.filter((bet) => bet.alliance !== result.winningAlliance);
 
-      if (winners.length === 0 || losers.length === 0) {
-        continue;
-      }
-
-      const totalWinningStake = winners.reduce((sum, bet) => sum + bet.amount, 0);
-      if (totalWinningStake <= 0) {
-        continue;
-      }
-
-      for (const loser of losers) {
-        for (const winner of winners) {
-          const amount = (loser.amount * winner.amount) / totalWinningStake;
-          if (amount <= 0) {
-            continue;
+      if (result.winningAlliance !== "tie" && winners.length > 0 && losers.length > 0) {
+        const totalWinningStake = winners.reduce((sum, bet) => sum + bet.amount, 0);
+        if (totalWinningStake > 0) {
+          for (const loser of losers) {
+            for (const winner of winners) {
+              const amount = Math.floor((loser.amount * winner.amount) / totalWinningStake);
+              if (amount <= 0 || loser.user.toString() === winner.user.toString()) {
+                continue;
+              }
+              await Debt.updateOne(
+                { teamId, matchId: result.matchId, from: loser.user, to: winner.user },
+                {
+                  $setOnInsert: {
+                    teamId,
+                    matchId: result.matchId,
+                    from: loser.user,
+                    to: winner.user,
+                    amount,
+                  },
+                },
+                { upsert: true }
+              );
+            }
           }
-
-          const from = loser.user.username;
-          const to = winner.user.username;
-          if (from === to) {
-            continue;
-          }
-
-          const key = `${from}|${to}`;
-          rawDebts.set(key, (rawDebts.get(key) || 0) + amount);
         }
       }
+      await MatchResult.updateOne({ _id: result._id }, { $set: { debtsCreated: true } });
     }
 
-    const netDebts = new Map();
-    const visited = new Set();
+    const debtDocs = await Debt.find({ teamId })
+      .populate("from", "username")
+      .populate("to", "username")
+      .sort({ amount: -1 });
 
-    for (const [key, amount] of rawDebts.entries()) {
-      if (visited.has(key)) {
-        continue;
-      }
-
-      const [from, to] = key.split("|");
-      const reverseKey = `${to}|${from}`;
-      const reverseAmount = rawDebts.get(reverseKey) || 0;
-      const netAmount = amount - reverseAmount;
-
-      visited.add(key);
-      visited.add(reverseKey);
-
-      if (netAmount > 0.000001) {
-        netDebts.set(key, netAmount);
-      } else if (netAmount < -0.000001) {
-        netDebts.set(reverseKey, -netAmount);
-      }
-    }
-
-    const debts = Array.from(netDebts.entries())
-      .map(([key, amount]) => {
-        const [from, to] = key.split("|");
-        return {
-          from,
-          to,
-          amount: Number(amount.toFixed(2)),
-        };
-      })
-      .sort((a, b) => b.amount - a.amount);
+    const debts = debtDocs.map((debt) => ({
+      id: debt._id,
+      from: debt.from ? debt.from.username : "unknown",
+      to: debt.to ? debt.to.username : "unknown",
+      amount: debt.amount,
+    }));
 
     const totalsMap = new Map();
     for (const debt of debts) {
@@ -332,9 +312,9 @@ router.get("/debts", async (req, res) => {
     const summary = Array.from(totalsMap.values())
       .map((item) => ({
         user: item.user,
-        owes: Number(item.owes.toFixed(2)),
-        owedTo: Number(item.owedTo.toFixed(2)),
-        net: Number((item.owedTo - item.owes).toFixed(2)),
+        owes: item.owes,
+        owedTo: item.owedTo,
+        net: item.owedTo - item.owes,
       }))
       .sort((a, b) => {
         if (b.net !== a.net) {
@@ -346,6 +326,85 @@ router.get("/debts", async (req, res) => {
     return res.json({ debts, summary });
   } catch (error) {
     return res.status(500).json({ error: "Failed to load debt report" });
+  }
+});
+
+router.delete("/debts/:id", async (req, res) => {
+  try {
+    const teamId = req.user.teamId;
+    const debt = await Debt.findOne({ _id: req.params.id, teamId });
+    if (!debt) {
+      return res.status(404).json({ error: "Debt not found" });
+    }
+
+    await debt.deleteOne();
+    return res.json({ ok: true, removed: true });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to remove debt" });
+  }
+});
+
+router.post("/debts/:id/forgive", async (req, res) => {
+  try {
+    const teamId = req.user.teamId;
+    const debt = await Debt.findOne({ _id: req.params.id, teamId });
+    if (!debt) {
+      return res.status(404).json({ error: "Debt not found" });
+    }
+
+    const fromUser = await User.findById(debt.from);
+    const toUser = await User.findById(debt.to);
+    if (!fromUser || !toUser) {
+      return res.status(404).json({ error: "Debt references a missing user" });
+    }
+
+    if (toUser.balance < debt.amount) {
+      return res.status(400).json({ error: "Winner does not have enough balance to forgive this debt" });
+    }
+
+    toUser.balance -= debt.amount;
+    fromUser.balance += debt.amount;
+    await toUser.save();
+    await fromUser.save();
+    await debt.deleteOne();
+
+    return res.json({ ok: true, forgiven: true });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to forgive debt" });
+  }
+});
+
+router.post("/matches/clear", async (req, res) => {
+  try {
+    const teamId = req.user.teamId;
+    const { matchId } = req.body;
+
+    if (!matchId) {
+      return res.status(400).json({ error: "matchId is required" });
+    }
+
+    await MatchResult.deleteMany({ matchId, teamId });
+    await Bet.deleteMany({ matchId, teamId, settled: true });
+    await Debt.deleteMany({ matchId, teamId });
+
+    return res.json({ ok: true, clearedMatch: matchId });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to clear match" });
+  }
+});
+
+router.post("/matches/clear-all", async (req, res) => {
+  try {
+    const teamId = req.user.teamId;
+
+    const clearedMatches = await MatchResult.find({ teamId }).distinct("matchId");
+    await MatchResult.deleteMany({ teamId });
+    await Bet.deleteMany({ teamId, settled: true });
+    await Debt.deleteMany({ teamId });
+
+    return res.json({ ok: true, clearedMatches });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to clear matches" });
   }
 });
 

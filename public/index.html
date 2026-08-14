@@ -49,20 +49,29 @@
       </section>
 
       <section class="grid" id="appSections" hidden>
-        <article class="card reveal">
-          <h2>Account</h2>
-          <div class="stats" id="accountStats"></div>
-          <form id="changePasswordForm" class="form-grid compact">
-            <h3>Change Password</h3>
-            <input type="password" id="currentPassword" placeholder="current password" required />
-            <input type="password" id="newPassword" placeholder="new password" minlength="6" required />
-            <input type="password" id="confirmNewPassword" placeholder="confirm new password" minlength="6" required />
-            <button type="submit">Update Password</button>
+        <article class="card reveal" id="activeMatchCard" hidden>
+          <h2>Set Active Match</h2>
+          <p style="margin:0 0 0.6rem; font-size:0.85rem; color:var(--ink-soft);">
+            Current: <strong id="currentActiveMatch">none</strong>
+          </p>
+          <form id="setActiveMatchForm" class="form-grid compact">
+            <input type="text" id="activeMatchId" placeholder="match id" required />
+            <button type="submit">Set Active Match</button>
           </form>
         </article>
 
         <article class="card reveal">
           <h2>Place Bet</h2>
+          <div class="funds-display">
+            <div class="stat">
+              <span class="stat-label">Your Balance</span>
+              <span class="stat-value" id="fundsBalance">0</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Pool Balance</span>
+              <span class="stat-value" id="fundsPool">0</span>
+            </div>
+          </div>
           <form id="betForm" class="form-grid compact">
             <label>
               Match ID
@@ -86,6 +95,18 @@
         <article class="card reveal span-2">
           <h2>My Bets</h2>
           <div id="betTableWrap" class="table-wrap"></div>
+        </article>
+
+        <article class="card reveal span-2" id="accountCard">
+          <h2>Account</h2>
+          <div class="stats" id="accountStats"></div>
+          <form id="changePasswordForm" class="form-grid compact">
+            <h3>Change Password</h3>
+            <input type="password" id="currentPassword" placeholder="current password" required />
+            <input type="password" id="newPassword" placeholder="new password" minlength="6" required />
+            <input type="password" id="confirmNewPassword" placeholder="confirm new password" minlength="6" required />
+            <button type="submit">Update Password</button>
+          </form>
         </article>
       </section>
 
@@ -120,12 +141,6 @@
             <button type="submit">Apply</button>
           </form>
 
-          <form id="setActiveMatchForm" class="form-grid compact panel-block">
-            <h3>Set Active Match</h3>
-            <input type="text" id="activeMatchId" placeholder="match id" required />
-            <button type="submit">Set Active Match</button>
-          </form>
-
           <form id="resolveMatchForm" class="form-grid compact panel-block">
             <h3>Resolve Match</h3>
             <select id="resolveMatchId" required></select>
@@ -147,6 +162,14 @@
               <option value="tie">Tie (refund all)</option>
             </select>
             <button type="submit">Resettle</button>
+          </form>
+
+          <form id="clearMatchesForm" class="form-grid compact panel-block">
+            <h3>Clear Old Matches</h3>
+            <p style="margin:0; font-size:0.85rem; color:var(--ink-soft);">Removes resolved matches, their settled bets, and debts.</p>
+            <select id="clearMatchId" required></select>
+            <button type="submit" id="clearSelectedBtn">Clear Selected</button>
+            <button type="button" id="clearAllBtn" class="ghost danger">Clear All Resolved</button>
           </form>
         </div>
 

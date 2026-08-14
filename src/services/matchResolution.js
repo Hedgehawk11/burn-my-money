@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Bet = require("../models/Bet");
+const Debt = require("../models/Debt");
 const MatchResult = require("../models/MatchResult");
 const User = require("../models/User");
 const { getPoolState } = require("./adminBootstrap");
@@ -91,6 +92,25 @@ async function settleGroup({ groupBets, winningAlliance, teamIdKey, resolverId }
     userId,
     amount,
   }));
+
+  const losers = groupBets.filter((bet) => bet.alliance !== winningAlliance);
+  if (winningAlliance !== "tie" && winners.length > 0 && losers.length > 0) {
+    const totalWinningStake = winners.reduce((sum, bet) => sum + bet.amount, 0);
+    for (const loser of losers) {
+      for (const winner of winners) {
+        const amount = Math.floor((loser.amount * winner.amount) / totalWinningStake);
+        if (amount <= 0 || loser.user.toString() === winner.user.toString()) {
+          continue;
+        }
+        await Debt.updateOne(
+          { teamId, matchId: groupBets[0].matchId, from: loser.user, to: winner.user },
+          { $setOnInsert: { teamId, matchId: groupBets[0].matchId, from: loser.user, to: winner.user, amount } },
+          { upsert: true }
+        );
+      }
+    }
+  }
+
   await MatchResult.findOneAndUpdate(
     { matchId: groupBets[0].matchId, teamId },
     {
@@ -99,6 +119,7 @@ async function settleGroup({ groupBets, winningAlliance, teamIdKey, resolverId }
       winningAlliance,
       resolvedBy: resolverId,
       payouts: payoutRecords,
+      debtsCreated: true,
     },
     { upsert: true, returnDocument: "after" }
   );
@@ -184,6 +205,7 @@ async function resettleMatch({ matchId, winningAlliance, resolverId, scopeTeamId
   await state.save();
 
   await Bet.updateMany({ matchId, teamId: scopeTeamId }, { $set: { settled: false } });
+  await Debt.deleteMany({ matchId, teamId: scopeTeamId });
   await result.deleteOne();
 
   return resolveMatch({ matchId, winningAlliance, resolverId, scopeTeamId });

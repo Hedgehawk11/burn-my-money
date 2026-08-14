@@ -103,6 +103,13 @@ const resolveMatchIdInput = document.getElementById("resolveMatchId");
 const setActiveMatchForm = document.getElementById("setActiveMatchForm");
 const resettleMatchForm = document.getElementById("resettleMatchForm");
 const resettleMatchId = document.getElementById("resettleMatchId");
+const activeMatchCard = document.getElementById("activeMatchCard");
+const currentActiveMatch = document.getElementById("currentActiveMatch");
+const fundsBalance = document.getElementById("fundsBalance");
+const fundsPool = document.getElementById("fundsPool");
+const clearMatchesForm = document.getElementById("clearMatchesForm");
+const clearMatchId = document.getElementById("clearMatchId");
+const clearAllBtn = document.getElementById("clearAllBtn");
 
 function populateResolveMatches(state) {
   const options = new Set();
@@ -144,6 +151,25 @@ function populateResettleMatches(state) {
     option.value = id;
     option.textContent = id;
     resettleMatchId.appendChild(option);
+  });
+}
+
+function populateClearMatches(state) {
+  const matches = state.settledMatches || [];
+  clearMatchId.innerHTML = "";
+  if (!matches.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No resolved matches";
+    clearMatchId.appendChild(option);
+    return;
+  }
+
+  matches.forEach((id) => {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = id;
+    clearMatchId.appendChild(option);
   });
 }
 
@@ -409,6 +435,10 @@ function renderDebtReport(summary, debts) {
         <td>${debt.from}</td>
         <td>${debt.to}</td>
         <td>${debt.amount}</td>
+        <td>
+          <button class="ghost btn-mini" data-pay-debt="${debt.id}">Paid</button>
+          <button class="ghost btn-mini" data-forgive-debt="${debt.id}">Forgive</button>
+        </td>
       </tr>
     `
     )
@@ -421,11 +451,43 @@ function renderDebtReport(summary, debts) {
           <th>From (owes)</th>
           <th>To (is owed)</th>
           <th>Amount</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
   `;
+
+  debtTableWrap.querySelectorAll("[data-pay-debt]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.payDebt;
+      try {
+        await request(`/team/debts/${id}`, { method: "DELETE" });
+        notify("Debt marked paid", "ok");
+        await refreshTeamDebts();
+      } catch (error) {
+        notify(error.message, "error");
+      }
+    });
+  });
+
+  debtTableWrap.querySelectorAll("[data-forgive-debt]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.forgiveDebt;
+      if (!confirm("Forgive this debt? The money will be moved back to the debtor.")) {
+        return;
+      }
+      try {
+        await request(`/team/debts/${id}/forgive`, { method: "POST" });
+        notify("Debt forgiven", "ok");
+        await refreshMainData();
+        await refreshTeamDebts();
+        await refreshTeamState();
+      } catch (error) {
+        notify(error.message, "error");
+      }
+    });
+  });
 }
 
 async function refreshMainData() {
@@ -436,6 +498,9 @@ async function refreshMainData() {
   currentUser.role = me.user.role;
   currentUser.team = me.team;
   matchIdInput.value = me.activeMatchId || "";
+  fundsBalance.textContent = me.user.balance;
+  fundsPool.textContent = me.poolBalance;
+  currentActiveMatch.textContent = me.activeMatchId || "none";
 }
 
 async function refreshTeamState() {
@@ -446,6 +511,7 @@ async function refreshTeamState() {
   renderAdminState(state);
   populateResolveMatches(state);
   populateResettleMatches(state);
+  populateClearMatches(state);
 }
 
 async function refreshTeamDebts() {
@@ -487,10 +553,12 @@ function setLoggedInView(isLoggedIn) {
   if (!isLoggedIn) {
     teamPanel.hidden = true;
     superPanel.hidden = true;
+    activeMatchCard.hidden = true;
     currentUser = null;
   } else if (currentUser) {
     teamPanel.hidden = currentUser.role !== "admin";
     superPanel.hidden = currentUser.role !== "superuser";
+    activeMatchCard.hidden = currentUser.role !== "admin";
     if (currentUser.role === "admin") {
       teamControls.forEach((control) => {
         control.disabled = false;
@@ -618,9 +686,9 @@ betForm.addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify({ matchId, alliance, amount }),
     });
-    await refreshMainData();
     notify("Bet placed", "ok");
     betForm.reset();
+    await refreshMainData();
   } catch (error) {
     notify(error.message, "error");
   }
@@ -779,6 +847,55 @@ resettleMatchForm.addEventListener("submit", async (event) => {
     });
     notify(`Resettled ${result.matchId}`, "ok");
     await refreshMainData();
+    await refreshTeamState();
+    await refreshTeamDebts();
+  } catch (error) {
+    notify(error.message, "error");
+  }
+});
+
+clearMatchesForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!requireRole("admin")) {
+    return;
+  }
+
+  const matchId = clearMatchId.value.trim();
+  if (!matchId) {
+    notify("No resolved match selected", "error");
+    return;
+  }
+
+  if (!confirm(`Clear match "${matchId}" and its settled bets and debts?`)) {
+    return;
+  }
+
+  try {
+    await request("/team/matches/clear", {
+      method: "POST",
+      body: JSON.stringify({ matchId }),
+    });
+    notify(`Cleared ${matchId}`, "ok");
+    await refreshTeamState();
+    await refreshTeamDebts();
+  } catch (error) {
+    notify(error.message, "error");
+  }
+});
+
+clearAllBtn.addEventListener("click", async () => {
+  if (!requireRole("admin")) {
+    return;
+  }
+
+  if (!confirm("Clear ALL resolved matches, their settled bets, and debts?")) {
+    return;
+  }
+
+  try {
+    await request("/team/matches/clear-all", { method: "POST" });
+    notify("All resolved matches cleared", "ok");
     await refreshTeamState();
     await refreshTeamDebts();
   } catch (error) {

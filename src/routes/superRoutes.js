@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Team = require("../models/Team");
 const Bet = require("../models/Bet");
+const Debt = require("../models/Debt");
 const MatchResult = require("../models/MatchResult");
 const SystemState = require("../models/SystemState");
 const { requireAuth, requireSuperuser } = require("../middleware/auth");
@@ -160,6 +161,7 @@ router.delete("/teams/:id", async (req, res) => {
 
     await Bet.deleteMany({ teamId });
     await MatchResult.deleteMany({ teamId });
+    await Debt.deleteMany({ teamId });
     await SystemState.deleteOne({ key: `team:${teamId}` });
     await User.deleteMany({ teamId });
     await team.deleteOne();
