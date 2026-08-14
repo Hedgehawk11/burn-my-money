@@ -178,7 +178,7 @@ Use certbot (Let's Encrypt) after DNS is pointed at your VM.
 
 On boot, the app auto-creates the Superuser if missing:
 - username: Superuser
-- password: I<3MST3k
+- password: change-me
 
 You can override with env vars SUPERVISOR_USERNAME and SUPERVISOR_PASSWORD.
 
@@ -192,7 +192,7 @@ Body:
 
 {
 	"username": "Superuser",
-	"password": "I<3MST3k"
+	"password": "change-me"
 }
 
 Use returned token in Authorization header:
