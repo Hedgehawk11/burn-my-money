@@ -16,8 +16,20 @@ const matchResultSchema = new mongoose.Schema(
     winningAlliance: {
       type: String,
       required: true,
-      enum: ["red", "blue"],
+      enum: ["red", "blue", "tie"],
     },
+    payouts: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        amount: {
+          type: Number,
+          min: 0,
+        },
+      },
+    ],
     resolvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

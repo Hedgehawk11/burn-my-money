@@ -100,13 +100,52 @@ usernameInput.addEventListener("input", () => {
 
 const matchIdInput = document.getElementById("matchId");
 const resolveMatchIdInput = document.getElementById("resolveMatchId");
+const setActiveMatchForm = document.getElementById("setActiveMatchForm");
+const resettleMatchForm = document.getElementById("resettleMatchForm");
+const resettleMatchId = document.getElementById("resettleMatchId");
 
-matchIdInput.addEventListener("input", () => {
-  const matchId = matchIdInput.value.trim();
-  if (matchId && !resolveMatchIdInput.value.trim()) {
-    resolveMatchIdInput.value = matchId;
+function populateResolveMatches(state) {
+  const options = new Set();
+  if (state.activeMatchId) {
+    options.add(state.activeMatchId);
   }
-});
+  (state.unsettledMatches || []).forEach((id) => options.add(id));
+
+  resolveMatchIdInput.innerHTML = "";
+  if (!options.size) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No active match";
+    resolveMatchIdInput.appendChild(option);
+    return;
+  }
+
+  options.forEach((id) => {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = id;
+    resolveMatchIdInput.appendChild(option);
+  });
+}
+
+function populateResettleMatches(state) {
+  const matches = state.settledMatches || [];
+  resettleMatchId.innerHTML = "";
+  if (!matches.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No resolved matches";
+    resettleMatchId.appendChild(option);
+    return;
+  }
+
+  matches.forEach((id) => {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = id;
+    resettleMatchId.appendChild(option);
+  });
+}
 
 function clearSession() {
   token = "";
@@ -396,6 +435,7 @@ async function refreshMainData() {
   renderBets(myBets.bets || []);
   currentUser.role = me.user.role;
   currentUser.team = me.team;
+  matchIdInput.value = me.activeMatchId || "";
 }
 
 async function refreshTeamState() {
@@ -404,6 +444,8 @@ async function refreshTeamState() {
   }
   const state = await request("/team/state");
   renderAdminState(state);
+  populateResolveMatches(state);
+  populateResettleMatches(state);
 }
 
 async function refreshTeamDebts() {
@@ -617,10 +659,9 @@ deleteUserForm.addEventListener("submit", async (event) => {
   }
 
   const username = document.getElementById("deleteUsername").value.trim();
-  const burnBalance = document.getElementById("burnBalance").checked;
 
   try {
-    await request(`/team/users/${encodeURIComponent(username)}?burnBalance=${burnBalance}`, {
+    await request(`/team/users/${encodeURIComponent(username)}`, {
       method: "DELETE",
     });
     notify("Member deleted", "ok");
@@ -662,7 +703,12 @@ resolveMatchForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  const matchId = document.getElementById("resolveMatchId").value.trim();
+  const matchId = resolveMatchIdInput.value.trim();
+  if (!matchId) {
+    notify("Set an active match first", "error");
+    return;
+  }
+
   const winningAlliance = document.getElementById("winningAlliance").value;
 
   try {
@@ -672,7 +718,66 @@ resolveMatchForm.addEventListener("submit", async (event) => {
     });
 
     notify(`Resolved ${result.matchId}`, "ok");
-    resolveMatchForm.reset();
+    await refreshMainData();
+    await refreshTeamState();
+    await refreshTeamDebts();
+  } catch (error) {
+    notify(error.message, "error");
+  }
+});
+
+setActiveMatchForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!requireRole("admin")) {
+    return;
+  }
+
+  const matchId = document.getElementById("activeMatchId").value.trim();
+  if (!matchId) {
+    notify("Enter a match id", "error");
+    return;
+  }
+
+  try {
+    await request("/team/active-match", {
+      method: "PATCH",
+      body: JSON.stringify({ matchId }),
+    });
+    notify(`Active match set to ${matchId}`, "ok");
+    setActiveMatchForm.reset();
+    await refreshMainData();
+    await refreshTeamState();
+  } catch (error) {
+    notify(error.message, "error");
+  }
+});
+
+resettleMatchForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!requireRole("admin")) {
+    return;
+  }
+
+  const matchId = resettleMatchId.value.trim();
+  if (!matchId) {
+    notify("No resolved match selected", "error");
+    return;
+  }
+
+  const winningAlliance = document.getElementById("resettleAlliance").value;
+
+  if (!confirm(`Resettle ${matchId} with ${winningAlliance}? This reverses the previous result.`)) {
+    return;
+  }
+
+  try {
+    const result = await request("/team/matches/resettle", {
+      method: "POST",
+      body: JSON.stringify({ matchId, winningAlliance }),
+    });
+    notify(`Resettled ${result.matchId}`, "ok");
     await refreshMainData();
     await refreshTeamState();
     await refreshTeamDebts();

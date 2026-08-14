@@ -14,7 +14,17 @@ async function settleGroup({ groupBets, winningAlliance, teamIdKey, resolverId }
   let payoutsByUser = {};
   let note;
 
-  if (isOneSidedBet) {
+  if (winningAlliance === "tie") {
+    payoutsByUser = groupBets.reduce((acc, bet) => {
+      const userId = bet.user.toString();
+      acc[userId] = (acc[userId] || 0) + bet.amount;
+      return acc;
+    }, {});
+
+    const refundTotal = groupBets.reduce((sum, bet) => sum + bet.amount, 0);
+    state.poolBalance = Math.max(0, state.poolBalance - refundTotal);
+    note = "Tie match. All bets refunded.";
+  } else if (isOneSidedBet) {
     payoutsByUser = groupBets.reduce((acc, bet) => {
       const userId = bet.user.toString();
       acc[userId] = (acc[userId] || 0) + bet.amount;
@@ -77,9 +87,19 @@ async function settleGroup({ groupBets, winningAlliance, teamIdKey, resolverId }
   );
 
   const teamId = teamIdKey ? new mongoose.Types.ObjectId(teamIdKey) : null;
+  const payoutRecords = Object.entries(payoutsByUser).map(([userId, amount]) => ({
+    userId,
+    amount,
+  }));
   await MatchResult.findOneAndUpdate(
     { matchId: groupBets[0].matchId, teamId },
-    { matchId: groupBets[0].matchId, teamId, winningAlliance, resolvedBy: resolverId },
+    {
+      matchId: groupBets[0].matchId,
+      teamId,
+      winningAlliance,
+      resolvedBy: resolverId,
+      payouts: payoutRecords,
+    },
     { upsert: true, returnDocument: "after" }
   );
 
@@ -133,4 +153,40 @@ async function resolveMatch({ matchId, winningAlliance, resolverId, scopeTeamId 
   return { matchId, winningAlliance, results };
 }
 
-module.exports = { resolveMatch };
+async function resettleMatch({ matchId, winningAlliance, resolverId, scopeTeamId = null }) {
+  if (!scopeTeamId) {
+    return null;
+  }
+
+  const result = await MatchResult.findOne({ matchId, teamId: scopeTeamId });
+  if (!result) {
+    return null;
+  }
+
+  if (result.payouts === undefined) {
+    throw new Error("Match was settled before resettle support; cannot resettle it.");
+  }
+
+  for (const payout of result.payouts) {
+    const user = await User.findById(payout.userId);
+    if (!user || user.balance < payout.amount) {
+      throw new Error("Cannot resettle: a gambler has already spent their winnings.");
+    }
+  }
+
+  for (const payout of result.payouts) {
+    await User.updateOne({ _id: payout.userId }, { $inc: { balance: -payout.amount } });
+  }
+
+  const state = await getPoolState(scopeTeamId);
+  const totalRefund = result.payouts.reduce((sum, payout) => sum + payout.amount, 0);
+  state.poolBalance += totalRefund;
+  await state.save();
+
+  await Bet.updateMany({ matchId, teamId: scopeTeamId }, { $set: { settled: false } });
+  await result.deleteOne();
+
+  return resolveMatch({ matchId, winningAlliance, resolverId, scopeTeamId });
+}
+
+module.exports = { resolveMatch, resettleMatch };

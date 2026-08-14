@@ -3,9 +3,10 @@ const bcrypt = require("bcryptjs");
 const Bet = require("../models/Bet");
 const MatchResult = require("../models/MatchResult");
 const User = require("../models/User");
+const Team = require("../models/Team");
 const { requireAuth, requireTeamAdmin } = require("../middleware/auth");
 const { getPoolState } = require("../services/adminBootstrap");
-const { resolveMatch } = require("../services/matchResolution");
+const { resolveMatch, resettleMatch } = require("../services/matchResolution");
 
 const router = express.Router();
 
@@ -18,14 +19,44 @@ router.get("/state", async (req, res) => {
     const members = await User.find({ teamId })
       .select("username balance role")
       .sort({ username: 1 });
+    const teamDoc = await Team.findById(teamId).select("activeMatchId");
+    const unsettledMatches = await Bet.distinct("matchId", { teamId, settled: false });
+    const settledMatches = await MatchResult.distinct("matchId", { teamId });
 
     return res.json({
       teamId,
       poolBalance: state.poolBalance,
+      activeMatchId: teamDoc ? teamDoc.activeMatchId : null,
+      unsettledMatches,
+      settledMatches,
       members,
     });
   } catch (error) {
     return res.status(500).json({ error: "Failed to load team state" });
+  }
+});
+
+router.patch("/active-match", async (req, res) => {
+  try {
+    const teamId = req.user.teamId;
+    const matchId = (req.body.matchId || "").trim();
+
+    if (!matchId) {
+      return res.status(400).json({ error: "matchId is required" });
+    }
+
+    const team = await Team.findByIdAndUpdate(
+      teamId,
+      { activeMatchId: matchId },
+      { returnDocument: "after" }
+    );
+    if (!team) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    return res.json({ activeMatchId: team.activeMatchId });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to set active match" });
   }
 });
 
@@ -76,7 +107,6 @@ router.delete("/users/:username", async (req, res) => {
   try {
     const teamId = req.user.teamId;
     const { username } = req.params;
-    const burnBalance = req.query.burnBalance === "true";
 
     const user = await User.findOne({ username, teamId });
     if (!user) {
@@ -88,20 +118,12 @@ router.delete("/users/:username", async (req, res) => {
     }
 
     const removedBalance = user.balance;
-
-    if (!burnBalance && removedBalance > 0) {
-      const state = await getPoolState(teamId);
-      state.poolBalance += removedBalance;
-      await state.save();
-    }
-
     await user.deleteOne();
 
     return res.json({
       deletedUser: username,
       removedBalance,
-      burned: burnBalance ? removedBalance : 0,
-      movedToPool: burnBalance ? 0 : removedBalance,
+      burned: removedBalance,
     });
   } catch (error) {
     return res.status(500).json({ error: "Failed to delete user" });
@@ -161,8 +183,10 @@ router.post("/matches/resolve", async (req, res) => {
   try {
     const { matchId, winningAlliance } = req.body;
 
-    if (!matchId || !["red", "blue"].includes(winningAlliance)) {
-      return res.status(400).json({ error: "matchId and winningAlliance are required" });
+    if (!matchId || !["red", "blue", "tie"].includes(winningAlliance)) {
+      return res.status(400).json({
+        error: "matchId and winningAlliance (red, blue, or tie) are required",
+      });
     }
 
     const result = await resolveMatch({
@@ -179,6 +203,39 @@ router.post("/matches/resolve", async (req, res) => {
     return res.json(result);
   } catch (error) {
     return res.status(500).json({ error: "Failed to resolve match" });
+  }
+});
+
+router.post("/matches/resettle", async (req, res) => {
+  try {
+    const { matchId, winningAlliance } = req.body;
+
+    if (!matchId || !["red", "blue", "tie"].includes(winningAlliance)) {
+      return res.status(400).json({
+        error: "matchId and winningAlliance (red, blue, or tie) are required",
+      });
+    }
+
+    const result = await resettleMatch({
+      matchId,
+      winningAlliance,
+      resolverId: req.user.userId,
+      scopeTeamId: req.user.teamId,
+    });
+
+    if (!result) {
+      return res.status(404).json({ error: "No resolved match found for this match in your team" });
+    }
+
+    return res.json({ ...result, resettled: true });
+  } catch (error) {
+    if (error.message === "Cannot resettle: a gambler has already spent their winnings.") {
+      return res.status(400).json({ error: error.message });
+    }
+    if (error.message === "Match was settled before resettle support; cannot resettle it.") {
+      return res.status(400).json({ error: error.message });
+    }
+    return res.status(500).json({ error: "Failed to resettle match" });
   }
 });
 

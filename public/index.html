@@ -66,7 +66,7 @@
           <form id="betForm" class="form-grid compact">
             <label>
               Match ID
-              <input type="text" id="matchId" placeholder="2026miket_qm12" required />
+              <input type="text" id="matchId" readonly required />
             </label>
             <label>
               Alliance
@@ -105,9 +105,7 @@
           <form id="deleteUserForm" class="form-grid compact panel-block">
             <h3>Delete Member</h3>
             <input type="text" id="deleteUsername" placeholder="username" required />
-            <label class="inline-check">
-              <input type="checkbox" id="burnBalance" /> Burn balance
-            </label>
+            <p style="margin:0; font-size:0.85rem; color:var(--ink-soft);">Their remaining balance will be burned.</p>
             <button type="submit">Delete</button>
           </form>
 
@@ -122,14 +120,33 @@
             <button type="submit">Apply</button>
           </form>
 
+          <form id="setActiveMatchForm" class="form-grid compact panel-block">
+            <h3>Set Active Match</h3>
+            <input type="text" id="activeMatchId" placeholder="match id" required />
+            <button type="submit">Set Active Match</button>
+          </form>
+
           <form id="resolveMatchForm" class="form-grid compact panel-block">
             <h3>Resolve Match</h3>
-            <input type="text" id="resolveMatchId" placeholder="match id" required />
+            <select id="resolveMatchId" required></select>
             <select id="winningAlliance">
               <option value="red">Red wins</option>
               <option value="blue">Blue wins</option>
+              <option value="tie">Tie (refund all)</option>
             </select>
             <button type="submit">Resolve + Payout</button>
+          </form>
+
+          <form id="resettleMatchForm" class="form-grid compact panel-block">
+            <h3>Resettle Match</h3>
+            <p style="margin:0; font-size:0.85rem; color:var(--ink-soft);">Reverses the previous result (e.g. red card) and re-pays out.</p>
+            <select id="resettleMatchId" required></select>
+            <select id="resettleAlliance">
+              <option value="red">Red wins</option>
+              <option value="blue">Blue wins</option>
+              <option value="tie">Tie (refund all)</option>
+            </select>
+            <button type="submit">Resettle</button>
           </form>
         </div>
 

@@ -17,9 +17,11 @@ router.get("/me", async (req, res) => {
     }
 
     let team = null;
+    let activeMatchId = null;
     if (user.teamId) {
-      const teamDoc = await Team.findById(user.teamId).select("name");
+      const teamDoc = await Team.findById(user.teamId).select("name activeMatchId");
       team = teamDoc ? teamDoc.name : null;
+      activeMatchId = teamDoc ? teamDoc.activeMatchId : null;
     }
 
     const state = await getPoolState(user.teamId ? user.teamId.toString() : null);
@@ -28,6 +30,7 @@ router.get("/me", async (req, res) => {
       user,
       poolBalance: state.poolBalance,
       team,
+      activeMatchId,
     });
   } catch (error) {
     return res.status(500).json({ error: "Failed to load account state" });
@@ -45,7 +48,8 @@ router.get("/my-bets", async (req, res) => {
 
 router.post("/bets", async (req, res) => {
   try {
-    const { matchId, alliance, amount } = req.body;
+    const matchId = (req.body.matchId || "").trim();
+    const { alliance, amount } = req.body;
 
     if (!matchId || !alliance || !Number.isInteger(amount) || amount <= 0) {
       return res.status(400).json({
@@ -64,6 +68,20 @@ router.post("/bets", async (req, res) => {
 
     if (user.balance < amount) {
       return res.status(400).json({ error: "Insufficient balance" });
+    }
+
+    if (user.teamId) {
+      const teamDoc = await Team.findById(user.teamId).select("activeMatchId");
+      if (!teamDoc || !teamDoc.activeMatchId) {
+        return res.status(400).json({
+          error: "No active match set for your team. Ask your team admin to set one.",
+        });
+      }
+      if (teamDoc.activeMatchId !== matchId) {
+        return res.status(400).json({
+          error: `Bets can only be placed on the active match (${teamDoc.activeMatchId})`,
+        });
+      }
     }
 
     const teamId = user.teamId;
