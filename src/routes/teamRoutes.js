@@ -202,6 +202,14 @@ router.post("/matches/resolve", async (req, res) => {
       return res.status(404).json({ error: "No unsettled bets for this match in your team" });
     }
 
+    if (result.matchId) {
+      const team = await Team.findById(req.user.teamId).select("activeMatchId");
+      if (team && team.activeMatchId === result.matchId) {
+        team.activeMatchId = null;
+        await team.save();
+      }
+    }
+
     return res.json(result);
   } catch (error) {
     return res.status(500).json({ error: "Failed to resolve match" });

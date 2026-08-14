@@ -530,6 +530,23 @@ async function refreshSuperTeams() {
   renderTeams(state);
 }
 
+async function refreshLiveData() {
+  if (!token) {
+    return;
+  }
+  try {
+    const me = await request("/api/me");
+    matchIdInput.value = me.activeMatchId || "";
+    fundsBalance.textContent = me.user.balance;
+    fundsPool.textContent = me.poolBalance;
+    currentActiveMatch.textContent = me.activeMatchId || "none";
+  } catch (error) {
+    // transient errors are ignored; the next poll retries
+  }
+}
+
+setInterval(refreshLiveData, 10000);
+
 function setLoggedInView(isLoggedIn) {
   authCard.hidden = isLoggedIn;
   appSections.hidden = !isLoggedIn;
