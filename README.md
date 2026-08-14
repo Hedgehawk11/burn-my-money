@@ -1,6 +1,6 @@
 # burn-my-money
 
-Small Node.js + MongoDB API for FRC gambling.
+Small Node.js APP for FRC gambling.
 
 Rules implemented:
 - Bets move money from a gambler's balance into their team's shared pool.
@@ -31,11 +31,12 @@ Rules implemented:
 
 	 npm install
 
-2. Copy environment file:
+2. Copy (and edit) environment file:
 
 	 cp .env.example .env
+	 nano .env
 
-3. Start server:
+4. Start server:
 
 	 npm start
 
@@ -67,11 +68,11 @@ Use this checklist for any deployment target.
 
 ### Vercel
 
-Vercel runs this app as a serverless function. Deploy the repo as-is; the `api/index.js` handler and `vercel.json` rewrites are already configured.
+Vercel runs this app . Deploy the repo as-is.
 
 1. In Vercel project settings, set every variable from "Required Environment Variables" below.
 2. In MongoDB Atlas, allow connections from anywhere (`0.0.0.0/0`) because Vercel functions use dynamic IPs.
-3. Deploy, then confirm `https://YOUR_DOMAIN/health` returns `{"ok":true}`.
+3. Deploy, then confirm `https://YOUR_DOMAIN/health` returns `{"ok":true}`, or just go to website
 
 ### Required Environment Variables
 
@@ -100,79 +101,6 @@ Use these exact app settings:
 After deploy, verify:
 
 	 curl -s https://YOUR_DOMAIN/health
-
-### Ubuntu VM Deployment (systemd)
-
-Install Node.js and clone the app:
-
-	 sudo apt update
-	 sudo apt install -y curl git
-	 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-	 sudo apt install -y nodejs
-	 sudo mkdir -p /opt/burn-my-money
-	 sudo chown "$USER":"$USER" /opt/burn-my-money
-	 git clone https://github.com/Hedgehawk11/burn-my-money.git /opt/burn-my-money
-	 cd /opt/burn-my-money
-	 npm install --omit=dev
-
-Create `/opt/burn-my-money/.env` with production values.
-
-Create systemd unit `/etc/systemd/system/burn-my-money.service`:
-
-```ini
-[Unit]
-Description=burn-my-money API
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/burn-my-money
-EnvironmentFile=/opt/burn-my-money/.env
-ExecStart=/usr/bin/npm start
-Restart=always
-RestartSec=5
-User=www-data
-Group=www-data
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Set ownership and start service:
-
-	 sudo chown -R www-data:www-data /opt/burn-my-money
-	 sudo systemctl daemon-reload
-	 sudo systemctl enable burn-my-money
-	 sudo systemctl start burn-my-money
-	 sudo systemctl status burn-my-money --no-pager
-
-Verify service and health endpoint:
-
-	 journalctl -u burn-my-money -n 100 --no-pager
-	 curl -s http://127.0.0.1:3000/health
-
-Optional Nginx reverse proxy:
-
-	 sudo apt install -y nginx
-	 sudo tee /etc/nginx/sites-available/burn-my-money >/dev/null <<'EOF'
-	 server {
-	   listen 80;
-	   server_name YOUR_DOMAIN;
-
-	   location / {
-	     proxy_pass http://127.0.0.1:3000;
-	     proxy_http_version 1.1;
-	     proxy_set_header Host $host;
-	     proxy_set_header X-Real-IP $remote_addr;
-	     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-	   }
-	 }
-	 EOF
-	 sudo ln -sf /etc/nginx/sites-available/burn-my-money /etc/nginx/sites-enabled/burn-my-money
-	 sudo nginx -t
-	 sudo systemctl reload nginx
-
-Use certbot (Let's Encrypt) after DNS is pointed at your VM.
 
 ## Default Superuser Account
 
@@ -243,7 +171,7 @@ Require the Superuser token.
 Example create team body:
 
 {
-	"name": "Team 1730",
+	"name": "Team XXXX",
 	"adminUsername": "team1730admin",
 	"adminPassword": "strongpassword",
 	"initialBalance": 1000
@@ -278,7 +206,3 @@ Example resolve body:
 
 If no one bet on the winning alliance, the team pool carries forward.
 If only one alliance had bets on a match, those bets are refunded.
-
-## Mongo Connection
-
-Configured in .env via MONGODB_URI.
