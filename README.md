@@ -1,6 +1,6 @@
 # burn-my-money
 
-Small Node.js APP for FRC gambling.
+Small Node.js app for FRC gambling.
 
 Rules implemented:
 - Bets move money from a gambler's balance into their team's shared pool.
