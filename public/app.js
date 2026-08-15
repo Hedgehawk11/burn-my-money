@@ -536,6 +536,7 @@ async function refreshLiveData() {
   }
   try {
     const me = await request("/api/me");
+    renderAccountStats(me);
     matchIdInput.value = me.activeMatchId || "";
     fundsBalance.textContent = me.user.balance;
     fundsPool.textContent = me.poolBalance;
