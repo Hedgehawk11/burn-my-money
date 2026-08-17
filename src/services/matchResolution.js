@@ -103,7 +103,12 @@ async function settleGroup({ groupBets, winningAlliance, teamIdKey, resolverId }
           continue;
         }
         await Debt.updateOne(
-          { teamId, matchId: groupBets[0].matchId, from: loser.user, to: winner.user },
+          {
+            teamId: { $eq: teamId },
+            matchId: { $eq: groupBets[0].matchId },
+            from: { $eq: loser.user },
+            to: { $eq: winner.user },
+          },
           { $setOnInsert: { teamId, matchId: groupBets[0].matchId, from: loser.user, to: winner.user, amount } },
           { upsert: true }
         );
@@ -112,7 +117,7 @@ async function settleGroup({ groupBets, winningAlliance, teamIdKey, resolverId }
   }
 
   await MatchResult.findOneAndUpdate(
-    { matchId: groupBets[0].matchId, teamId },
+    { matchId: { $eq: groupBets[0].matchId }, teamId: { $eq: teamId } },
     {
       matchId: groupBets[0].matchId,
       teamId,
@@ -179,7 +184,10 @@ async function resettleMatch({ matchId, winningAlliance, resolverId, scopeTeamId
     return null;
   }
 
-  const result = await MatchResult.findOne({ matchId, teamId: scopeTeamId });
+  const result = await MatchResult.findOne({
+    matchId: { $eq: matchId },
+    teamId: { $eq: scopeTeamId },
+  });
   if (!result) {
     return null;
   }
@@ -204,8 +212,11 @@ async function resettleMatch({ matchId, winningAlliance, resolverId, scopeTeamId
   state.poolBalance += totalRefund;
   await state.save();
 
-  await Bet.updateMany({ matchId, teamId: scopeTeamId }, { $set: { settled: false } });
-  await Debt.deleteMany({ matchId, teamId: scopeTeamId });
+  await Bet.updateMany(
+    { matchId: { $eq: matchId }, teamId: { $eq: scopeTeamId } },
+    { $set: { settled: false } }
+  );
+  await Debt.deleteMany({ matchId: { $eq: matchId }, teamId: { $eq: scopeTeamId } });
   await result.deleteOne();
 
   return resolveMatch({ matchId, winningAlliance, resolverId, scopeTeamId });
