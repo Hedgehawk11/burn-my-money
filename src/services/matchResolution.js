@@ -119,12 +119,16 @@ async function settleGroup({ groupBets, winningAlliance, teamIdKey, resolverId }
   await MatchResult.findOneAndUpdate(
     { matchId: { $eq: groupBets[0].matchId }, teamId: { $eq: teamId } },
     {
-      matchId: groupBets[0].matchId,
-      teamId,
-      winningAlliance,
-      resolvedBy: resolverId,
-      payouts: payoutRecords,
-      debtsCreated: true,
+      $set: {
+        winningAlliance,
+        resolvedBy: resolverId,
+        payouts: payoutRecords,
+        debtsCreated: true,
+      },
+      $setOnInsert: {
+        matchId: groupBets[0].matchId,
+        teamId,
+      },
     },
     { upsert: true, returnDocument: "after" }
   );
