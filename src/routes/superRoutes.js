@@ -149,6 +149,37 @@ router.put("/teams/:id/admin", async (req, res) => {
   }
 });
 
+router.patch("/teams/:id/admin/password", async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: "password must be at least 6 characters" });
+    }
+
+    const team = await Team.findById(req.params.id);
+    if (!team) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    const admin = await User.findOne({ teamId: team._id, role: "admin" });
+    if (!admin) {
+      return res.status(404).json({ error: "No admin found for this team" });
+    }
+
+    admin.passwordHash = await bcrypt.hash(password, 12);
+    await admin.save();
+
+    return res.json({
+      ok: true,
+      team: { id: team._id, name: team.name },
+      admin: { id: admin._id, username: admin.username },
+    });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to reset admin password" });
+  }
+});
+
 router.delete("/teams/:id", async (req, res) => {
   try {
     const team = await Team.findById(req.params.id);

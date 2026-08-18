@@ -63,6 +63,7 @@
             <input type="text" id="activeMatchId" placeholder="match id" required />
             <button type="submit">Set Active Match</button>
           </form>
+          <button type="button" id="clearActiveMatchBtn" class="ghost danger">Clear Active Match</button>
         </article>
 
         <article class="card reveal">
@@ -146,6 +147,13 @@
             <button type="submit">Apply</button>
           </form>
 
+          <form id="resetPasswordForm" class="form-grid compact panel-block">
+            <h3>Reset Member Password</h3>
+            <input type="text" id="resetPasswordUsername" placeholder="username" required />
+            <input type="password" id="resetPasswordNew" placeholder="new password" minlength="6" required />
+            <button type="submit">Reset Password</button>
+          </form>
+
           <form id="resolveMatchForm" class="form-grid compact panel-block">
             <h3>Resolve Match</h3>
             <select id="resolveMatchId" required></select>
@@ -214,6 +222,15 @@
               <option value="">Select member</option>
             </select>
             <button type="submit">Set Admin</button>
+          </form>
+
+          <form id="resetAdminPasswordForm" class="form-grid compact panel-block">
+            <h3>Reset Admin Password</h3>
+            <select id="resetAdminPasswordTeam" required>
+              <option value="">Select team</option>
+            </select>
+            <input type="password" id="resetAdminPasswordNew" placeholder="new password" minlength="6" required />
+            <button type="submit">Reset Password</button>
           </form>
         </div>
 

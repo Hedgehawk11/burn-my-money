@@ -45,6 +45,9 @@ const teamsWrap = document.getElementById("teamsWrap");
 const changeAdminForm = document.getElementById("changeAdminForm");
 const changeAdminTeam = document.getElementById("changeAdminTeam");
 const changeAdminMember = document.getElementById("changeAdminMember");
+const resetPasswordForm = document.getElementById("resetPasswordForm");
+const resetAdminPasswordForm = document.getElementById("resetAdminPasswordForm");
+const resetAdminPasswordTeam = document.getElementById("resetAdminPasswordTeam");
 
 let token = localStorage.getItem("burnmoney-token") || "";
 let currentUser = null;
@@ -110,6 +113,7 @@ const fundsPool = document.getElementById("fundsPool");
 const clearMatchesForm = document.getElementById("clearMatchesForm");
 const clearMatchId = document.getElementById("clearMatchId");
 const clearAllBtn = document.getElementById("clearAllBtn");
+const clearActiveMatchBtn = document.getElementById("clearActiveMatchBtn");
 
 function populateResolveMatches(state) {
   const options = new Set();
@@ -335,11 +339,18 @@ function renderTeams(state) {
 
   superTeams = teams;
   changeAdminTeam.innerHTML = '<option value="">Select team</option>';
+  resetAdminPasswordTeam.innerHTML = '<option value="">Select team</option>';
   teams.forEach((team) => {
     const option = document.createElement("option");
     option.value = team.id;
     option.textContent = team.name;
     changeAdminTeam.appendChild(option);
+  });
+  teams.forEach((team) => {
+    const option = document.createElement("option");
+    option.value = team.id;
+    option.textContent = team.name;
+    resetAdminPasswordTeam.appendChild(option);
   });
 
   const rows = teams
@@ -782,6 +793,28 @@ adjustBalanceForm.addEventListener("submit", async (event) => {
   }
 });
 
+resetPasswordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!requireRole("admin")) {
+    return;
+  }
+
+  const username = document.getElementById("resetPasswordUsername").value.trim();
+  const newPassword = document.getElementById("resetPasswordNew").value;
+
+  try {
+    await request(`/team/users/${encodeURIComponent(username)}/password`, {
+      method: "PATCH",
+      body: JSON.stringify({ password: newPassword }),
+    });
+    notify(`Password reset for ${username}`, "ok");
+    resetPasswordForm.reset();
+  } catch (error) {
+    notify(error.message, "error");
+  }
+});
+
 resolveMatchForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -832,6 +865,21 @@ setActiveMatchForm.addEventListener("submit", async (event) => {
     });
     notify(`Active match set to ${matchId}`, "ok");
     setActiveMatchForm.reset();
+    await refreshMainData();
+    await refreshTeamState();
+  } catch (error) {
+    notify(error.message, "error");
+  }
+});
+
+clearActiveMatchBtn.addEventListener("click", async () => {
+  if (!requireRole("admin")) {
+    return;
+  }
+
+  try {
+    await request("/team/active-match", { method: "DELETE" });
+    notify("Active match cleared", "ok");
     await refreshMainData();
     await refreshTeamState();
   } catch (error) {
@@ -1014,6 +1062,33 @@ changeAdminForm.addEventListener("submit", async (event) => {
     notify(`Admin changed to ${username}`, "ok");
     changeAdminForm.reset();
     await refreshSuperTeams();
+  } catch (error) {
+    notify(error.message, "error");
+  }
+});
+
+resetAdminPasswordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!requireRole("superuser")) {
+    return;
+  }
+
+  const teamId = resetAdminPasswordTeam.value;
+  const newPassword = document.getElementById("resetAdminPasswordNew").value;
+
+  if (!teamId) {
+    notify("Select a team", "error");
+    return;
+  }
+
+  try {
+    const result = await request(`/super/teams/${teamId}/admin/password`, {
+      method: "PATCH",
+      body: JSON.stringify({ password: newPassword }),
+    });
+    notify(`Password reset for ${result.admin.username}`, "ok");
+    resetAdminPasswordForm.reset();
   } catch (error) {
     notify(error.message, "error");
   }

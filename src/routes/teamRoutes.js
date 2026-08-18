@@ -61,6 +61,25 @@ router.patch("/active-match", async (req, res) => {
   }
 });
 
+router.delete("/active-match", async (req, res) => {
+  try {
+    const teamId = req.user.teamId;
+
+    const team = await Team.findByIdAndUpdate(
+      teamId,
+      { activeMatchId: null },
+      { returnDocument: "after" }
+    );
+    if (!team) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    return res.json({ activeMatchId: team.activeMatchId });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to clear active match" });
+  }
+});
+
 router.post("/users", async (req, res) => {
   try {
     const teamId = req.user.teamId;
@@ -129,6 +148,34 @@ router.delete("/users/:username", async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ error: "Failed to delete user" });
+  }
+});
+
+router.patch("/users/:username/password", async (req, res) => {
+  try {
+    const teamId = req.user.teamId;
+    const { username } = req.params;
+    const { password } = req.body;
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: "password must be at least 6 characters" });
+    }
+
+    const user = await User.findOne({ username, teamId });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (!user.teamId || user.teamId.toString() !== teamId) {
+      return res.status(403).json({ error: "Can only reset passwords in your own team" });
+    }
+
+    user.passwordHash = await bcrypt.hash(password, 12);
+    await user.save();
+
+    return res.json({ ok: true, user: { id: user._id, username: user.username } });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to reset password" });
   }
 });
 
