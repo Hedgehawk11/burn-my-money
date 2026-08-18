@@ -96,10 +96,6 @@ router.post("/change-password", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "currentPassword and newPassword are required" });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: "newPassword must be at least 6 characters" });
-    }
-
     const user = await User.findById(req.user.userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
