@@ -183,7 +183,8 @@ router.patch("/users/:username/balance", async (req, res) => {
 
 router.post("/matches/resolve", async (req, res) => {
   try {
-    const { matchId, winningAlliance } = req.body;
+    const matchId = typeof req.body.matchId === "string" ? req.body.matchId.trim() : "";
+    const { winningAlliance } = req.body;
 
     if (!matchId || !["red", "blue", "tie"].includes(winningAlliance)) {
       return res.status(400).json({
@@ -218,7 +219,8 @@ router.post("/matches/resolve", async (req, res) => {
 
 router.post("/matches/resettle", async (req, res) => {
   try {
-    const { matchId, winningAlliance } = req.body;
+    const matchId = typeof req.body.matchId === "string" ? req.body.matchId.trim() : "";
+    const { winningAlliance } = req.body;
 
     if (!matchId || !["red", "blue", "tie"].includes(winningAlliance)) {
       return res.status(400).json({
@@ -385,15 +387,15 @@ router.post("/debts/:id/forgive", async (req, res) => {
 router.post("/matches/clear", async (req, res) => {
   try {
     const teamId = req.user.teamId;
-    const { matchId } = req.body;
+    const matchId = typeof req.body.matchId === "string" ? req.body.matchId.trim() : "";
 
     if (!matchId) {
       return res.status(400).json({ error: "matchId is required" });
     }
 
-    await MatchResult.deleteMany({ matchId, teamId });
-    await Bet.deleteMany({ matchId, teamId, settled: true });
-    await Debt.deleteMany({ matchId, teamId });
+    await MatchResult.deleteMany({ matchId: { $eq: matchId }, teamId: { $eq: teamId } });
+    await Bet.deleteMany({ matchId: { $eq: matchId }, teamId: { $eq: teamId }, settled: true });
+    await Debt.deleteMany({ matchId: { $eq: matchId }, teamId: { $eq: teamId } });
 
     return res.json({ ok: true, clearedMatch: matchId });
   } catch (error) {
