@@ -546,7 +546,7 @@ async function refreshLiveData() {
   }
 }
 
-setInterval(refreshLiveData, 10000);
+setInterval(refreshLiveData, 5000);
 
 function setLoggedInView(isLoggedIn) {
   authCard.hidden = isLoggedIn;
@@ -1021,3 +1021,9 @@ changeAdminForm.addEventListener("submit", async (event) => {
 
 setLoggedInView(false);
 loginFromSavedToken();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
