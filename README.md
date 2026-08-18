@@ -1,6 +1,6 @@
 # Burn My Money
 ## Because fake gambling is fun
-### NOTE: I, Hedgehawk11, do not condone gambling actual money, hence this project's existence, I also recommend you don't run this during matches where you know your team is getting creamed (EX: Round 1 Match 1, you are on alliance 8), or better yet, don't run it when your team is playing.
+### NOTE: I, Hedgehawk11, do not condone gambling actual money, hence this project's existence, I also recommend you don't run this during matches where you know your team is getting creamed (EX: Round 1 Match 1, you are on alliance 8), or better yet, don't run it when your team is playing, so your team doesn't divide
 
 Small Node.js app for FRC gambling.
 
