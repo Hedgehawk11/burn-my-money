@@ -113,7 +113,6 @@ const fundsPool = document.getElementById("fundsPool");
 const clearMatchesForm = document.getElementById("clearMatchesForm");
 const clearMatchId = document.getElementById("clearMatchId");
 const clearAllBtn = document.getElementById("clearAllBtn");
-const clearActiveMatchBtn = document.getElementById("clearActiveMatchBtn");
 
 function populateResolveMatches(state) {
   const options = new Set();
@@ -853,33 +852,19 @@ setActiveMatchForm.addEventListener("submit", async (event) => {
   }
 
   const matchId = document.getElementById("activeMatchId").value.trim();
-  if (!matchId) {
-    notify("Enter a match id", "error");
-    return;
-  }
 
   try {
-    await request("/team/active-match", {
-      method: "PATCH",
-      body: JSON.stringify({ matchId }),
-    });
-    notify(`Active match set to ${matchId}`, "ok");
+    if (!matchId) {
+      await request("/team/active-match", { method: "DELETE" });
+      notify("Active match cleared", "ok");
+    } else {
+      await request("/team/active-match", {
+        method: "PATCH",
+        body: JSON.stringify({ matchId }),
+      });
+      notify(`Active match set to ${matchId}`, "ok");
+    }
     setActiveMatchForm.reset();
-    await refreshMainData();
-    await refreshTeamState();
-  } catch (error) {
-    notify(error.message, "error");
-  }
-});
-
-clearActiveMatchBtn.addEventListener("click", async () => {
-  if (!requireRole("admin")) {
-    return;
-  }
-
-  try {
-    await request("/team/active-match", { method: "DELETE" });
-    notify("Active match cleared", "ok");
     await refreshMainData();
     await refreshTeamState();
   } catch (error) {
