@@ -1,4 +1,4 @@
-const CACHE_NAME = "burn-my-money-v3";
+const CACHE_NAME = "burn-my-money-v2";
 const STATIC_ASSETS = ["/", "/index.html", "/styles.css", "/app.js", "/manifest.json", "/icon.svg"];
 const API_PREFIXES = ["/api", "/auth", "/team", "/super", "/health"];
 

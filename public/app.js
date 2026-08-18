@@ -315,19 +315,6 @@ function renderAdminState(state) {
     .map((user) => `<tr><td>${user.username}</td><td>${user.balance}</td></tr>`)
     .join("");
 
-  const resetPasswordUsername = document.getElementById("resetPasswordUsername");
-  const selectedUsername = resetPasswordUsername.value;
-  resetPasswordUsername.innerHTML = '<option value="">Select member</option>';
-  state.members.forEach((user) => {
-    const option = document.createElement("option");
-    option.value = user.username;
-    option.textContent = user.username;
-    resetPasswordUsername.appendChild(option);
-  });
-  if (selectedUsername && state.members.some((user) => user.username === selectedUsername)) {
-    resetPasswordUsername.value = selectedUsername;
-  }
-
   adminState.innerHTML = `
     <table>
       <thead>
@@ -812,7 +799,7 @@ resetPasswordForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  const username = document.getElementById("resetPasswordUsername").value;
+  const username = document.getElementById("resetPasswordUsername").value.trim();
   const newPassword = document.getElementById("resetPasswordNew").value;
 
   try {
