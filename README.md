@@ -61,7 +61,7 @@ Expected response:
 
 	 {"ok":true}
 
-## Deployment (Production)
+## Deployment
 
 Use this checklist for any deployment target.
 
@@ -164,7 +164,7 @@ Example create team body:
 
 {
 	"name": "Team XXXX",
-	"adminUsername": "team1730admin",
+	"adminUsername": "teamXXXXadmin",
 	"adminPassword": "strongpassword",
 	"initialBalance": 1000
 }
