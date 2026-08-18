@@ -1,7 +1,7 @@
 {
   "name": "Burn My Money",
-  "short_name": "BurnMyMoney",
-  "description": "FRC betting control room",
+  "short_name": "Burn My Money",
+  "description": "because fake gambling is fun",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
