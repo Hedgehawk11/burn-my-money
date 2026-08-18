@@ -1,4 +1,6 @@
-# burn-my-money
+# Burn My Money
+## Because fake gambling is fun
+### NOTE: I, Hedgehawk11, do not condone gambling actual money, hence this project's existence, I also recommend you don't run this during matches where you know your team is getting creamed (EX: Round 1 Match 1, you are on alliance 8), or better yet, don't run it when your team is playing.
 
 Small Node.js app for FRC gambling.
 
@@ -6,15 +8,15 @@ Rules implemented:
 - Bets move money from a gambler's balance into their team's shared pool.
 - Match resolution pays the full pool out proportionally to winners.
 - If only one alliance received bets for a match, those bets are refunded.
-- A Superuser account creates teams, each with exactly one team admin.
+- A Superuser account creates teams, each with exactly one team admin (I might add multi-admin support in the future tho).
 - Team admins manage their own team: create accounts, mint/burn currency, resolve matches, and review debts.
-- Each team has its own independent pool, so teams can operate at different events.
+- Each team has its own independent pool, so teams can operate at different exchange rates.
 
 ## Roles
 
 | Role | Powers |
 | --- | --- |
-| Superuser | Create teams (name + admin credentials), list teams, change a team's admin, delete teams (cascades to members/bets/pool). |
+| Superuser | Create teams (name + admin credentials), list teams, change a team's admin, delete teams (cascades to members/bets/pool). Only 1 per instance |
 | Team admin | One per team. Create/delete team members, mint/burn member balances, resolve team matches, view team state and debt report. |
 | Gambler | Member of a team, created by their team admin. Places bets, views own bets. |
 
@@ -28,6 +30,7 @@ Rules implemented:
 ## Quick Start
 
 #### If you just want your team to just be added into the main vercel instance, just create an issue, i'll get you set up
+#### as a note, I am running the vercel mongo instance off of atlas free tier, so if there is a problem, I might have exeeded the 500 connection limit
 
 ## Self host
 
@@ -72,11 +75,10 @@ Use this checklist for any deployment target.
 
 ### Vercel
 
-Vercel runs this app . Deploy the repo as-is.
+Vercel runs this app. Deploy the repo as-is (literally just deploy this repo and config .env).
 
 1. In Vercel project settings, set every variable from "Required Environment Variables" below.
-2. In MongoDB Atlas, allow connections from anywhere (`0.0.0.0/0`) because Vercel functions use dynamic IPs.
-3. Deploy, then confirm `https://YOUR_DOMAIN/health` returns `{"ok":true}`, or just go to website
+2. In MongoDB Atlas, allow connections from anywhere (`0.0.0.0/0`) because Vercel.
 
 ### Required Environment Variables
 
@@ -85,26 +87,12 @@ Set these in your host's environment settings (not committed files):
 - `PORT` (example: `3000`, many hosts inject this automatically)
 - `MONGODB_URI` (MongoDB connection string)
 - `JWT_SECRET` (long random secret)
-- `SUPERVISOR_USERNAME`
-- `SUPERVISOR_PASSWORD`
+- `SUPERVISOR_USERNAME` (how you create teams on your instance)
+- `SUPERVISOR_PASSWORD` (password for above)
 
 Generate a secure JWT secret:
 
 	 openssl rand -base64 48
-
-### Managed Host (Render/Railway/Fly.io style)
-
-Use these exact app settings:
-
-1. Runtime: Node
-2. Build command: `npm install`
-3. Start command: `npm start`
-4. Health check path: `/health`
-5. Environment variables: set every variable from "Required Environment Variables"
-
-After deploy, verify:
-
-	 curl -s https://YOUR_DOMAIN/health
 
 ## Default Superuser Account
 
@@ -213,4 +201,4 @@ If only one alliance had bets on a match, those bets are refunded.
 
 # AI DISCLAIMER
 See my buzzers project for a better explanation\
-TLDR: Started as learning thing I thought I could learn from, got useful, got complicated, got to be a mess
+TLDR: Started as learning thing I thought I could learn from, got useful, got complicated, got to be a mess, I ain't learning much here
