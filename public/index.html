@@ -148,7 +148,9 @@
 
           <form id="resetPasswordForm" class="form-grid compact panel-block">
             <h3>Reset Member Password</h3>
-            <input type="text" id="resetPasswordUsername" placeholder="username" required />
+            <select id="resetPasswordUsername" required>
+              <option value="">Select member</option>
+            </select>
             <input type="password" id="resetPasswordNew" placeholder="new password" minlength="6" required />
             <button type="submit">Reset Password</button>
           </form>
