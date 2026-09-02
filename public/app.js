@@ -33,6 +33,10 @@ themeBtn.addEventListener("click", () => {
 initTheme();
 
 const createUserForm = document.getElementById("createUserForm");
+const bulkCreateBtn = document.getElementById("bulkCreateBtn");
+const bulkUsernamesBalance = document.getElementById("bulkUsernamesBalance");
+const bulkDefaultPassword = document.getElementById("bulkDefaultPassword");
+const bulkResults = document.getElementById("bulkResults");
 const deleteUserForm = document.getElementById("deleteUserForm");
 const adjustBalanceForm = document.getElementById("adjustBalanceForm");
 const resolveMatchForm = document.getElementById("resolveMatchForm");
@@ -747,6 +751,24 @@ createUserForm.addEventListener("submit", async (event) => {
   }
 });
 
+// Only show bulk create for team admins
+if (currentUser && currentUser.role === "admin") {
+  const bulkCreateSection = `
+    <div class="form-section" style="margin-top:1.5rem">
+      <h3>Bulk Create Members</h3>
+      <p style="font-size:0.85rem; color:#666; margin-bottom:0.5rem">Format: <code>username,balance</code> per line</p>
+      <textarea id="bulkUsernamesBalance" rows="4" cols="50" placeholder="john,100\njane,50"></textarea>
+      <br/>
+      <label>Default password for all new members <span style="color:#c00">(min 6 chars)</span>: <input type="password" id="bulkDefaultPassword" minlength="6" required/></label>
+      <br/>
+      <button id="bulkCreateBtn" style="margin-top:0.5rem">Bulk Create Members</button>
+      <div id="bulkResults" style="margin-top:0.5rem; font-size:0.9rem;"></div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", bulkCreateSection);
+}
+
 deleteUserForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -949,6 +971,59 @@ clearAllBtn.addEventListener("click", async () => {
     notify("All resolved matches cleared", "ok");
     await refreshTeamState();
     await refreshTeamDebts();
+  } catch (error) {
+    notify(error.message, "error");
+  }
+});
+
+bulkCreateBtn.addEventListener("click", async () => {
+  if (!bulkCreateBtn) {
+    return;
+  }
+  if (!requireRole("admin")) {
+    return;
+  }
+
+  const textarea = document.getElementById("bulkUsernamesBalance");
+  const raw = textarea.value;
+  const lines = raw.split("\n").filter((l) => l.trim() !== "");
+
+  if (lines.length === 0) {
+    notify("Enter at least one username,balance pair", "error");
+    return;
+  }
+
+  const usernames = lines.map((line) => {
+    const parts = line.split(",");
+    return parts[0].trim();
+  });
+
+  const defaultPassword = document.getElementById("bulkDefaultPassword").value.trim();
+  if (!defaultPassword || defaultPassword.length < 6) {
+    notify("Default password must be at least 6 characters", "error");
+    return;
+  }
+
+  try {
+    const data = await request("/team/users/bulk", {
+      method: "POST",
+      body: JSON.stringify({ usernames, defaultPassword }),
+    });
+
+    const created = data.results.filter((r) => r.success).length;
+    const failed = data.results.filter((r) => !r.success).length;
+    const failedUsernames = data.results
+      .filter((r) => !r.success)
+      .map((r) => r.username)
+      .join(", ");
+
+    if (created > 0) {
+      notify(`${created} member(s) created${failed > 0 ? `, ${failed} failed${failedUsernames ? `: ${failedUsernames}` : ""}` : ""}`, "ok");
+    } else {
+      notify(`${failed} creation(s) failed: ${failedUsernames}`, "error");
+    }
+
+    refreshTeamState();
   } catch (error) {
     notify(error.message, "error");
   }
