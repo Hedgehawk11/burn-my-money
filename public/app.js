@@ -595,6 +595,25 @@ function setLoggedInView(isLoggedIn) {
       teamControls.forEach((control) => {
         control.disabled = false;
       });
+
+      // Bulk create section (only inserted once when admin logs in)
+      if (!document.getElementById("bulkCreateSection")) {
+        const bulkCreateSection = document.createElement("div");
+        bulkCreateSection.id = "bulkCreateSection";
+        bulkCreateSection.className = "form-section";
+        bulkCreateSection.style.marginTop = "1.5rem";
+        bulkCreateSection.innerHTML = `
+          <h3>Bulk Create Members</h3>
+          <p style="font-size:0.85rem; color:#666; margin-bottom:0.5rem">Format: <code>username,balance</code> per line</p>
+          <textarea id="bulkUsernamesBalance" rows="4" cols="50" placeholder="john,100\njane,50"></textarea>
+          <br/>
+          <label>Default password for all new members <span style="color:#c00">(min 6 chars)</span>: <input type="password" id="bulkDefaultPassword" minlength="6" required/></label>
+          <br/>
+          <button id="bulkCreateBtn" style="margin-top:0.5rem">Bulk Create Members</button>
+          <div id="bulkResults" style="margin-top:0.5rem; font-size:0.9rem;"></div>
+        `;
+        document.body.appendChild(bulkCreateSection);
+      }
     }
     if (currentUser.role === "superuser") {
       superControls.forEach((control) => {
@@ -750,24 +769,6 @@ createUserForm.addEventListener("submit", async (event) => {
     notify(error.message, "error");
   }
 });
-
-// Only show bulk create for team admins
-if (currentUser && currentUser.role === "admin") {
-  const bulkCreateSection = `
-    <div class="form-section" style="margin-top:1.5rem">
-      <h3>Bulk Create Members</h3>
-      <p style="font-size:0.85rem; color:#666; margin-bottom:0.5rem">Format: <code>username,balance</code> per line</p>
-      <textarea id="bulkUsernamesBalance" rows="4" cols="50" placeholder="john,100\njane,50"></textarea>
-      <br/>
-      <label>Default password for all new members <span style="color:#c00">(min 6 chars)</span>: <input type="password" id="bulkDefaultPassword" minlength="6" required/></label>
-      <br/>
-      <button id="bulkCreateBtn" style="margin-top:0.5rem">Bulk Create Members</button>
-      <div id="bulkResults" style="margin-top:0.5rem; font-size:0.9rem;"></div>
-    </div>
-  `;
-
-  document.body.insertAdjacentHTML("beforeend", bulkCreateSection);
-}
 
 deleteUserForm.addEventListener("submit", async (event) => {
   event.preventDefault();
