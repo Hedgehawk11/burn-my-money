@@ -123,6 +123,79 @@ router.post("/users", async (req, res) => {
   }
 });
 
+router.post("/users/bulk", async (req, res) => {
+  try {
+    const teamId = req.user.teamId;
+    const { usernames, defaultPassword } = req.body;
+
+    if (!Array.isArray(usernames) || usernames.length === 0) {
+      return res.status(400).json({ error: "usernames array is required" });
+    }
+
+    if (!defaultPassword || defaultPassword.length < 6) {
+      return res.status(400).json({ error: "defaultPassword must be at least 6 characters" });
+    }
+
+    const passwordHash = await bcrypt.hash(defaultPassword, 12);
+    const results = [];
+    let created = 0;
+    let failed = 0;
+
+    for (const entry of usernames) {
+      const trimmed = entry.trim();
+      if (!trimmed) {
+        results.push({ username: "(empty)", success: false, error: "empty entry" });
+        failed++;
+        continue;
+      }
+
+      const parts = trimmed.split(",");
+      const username = parts[0].trim();
+      const balanceStr = parts[1] ? parts[1].trim() : "0";
+
+      if (!username) {
+        results.push({ username: trimmed, success: false, error: "missing username" });
+        failed++;
+        continue;
+      }
+
+      let initialBalance;
+      try {
+        initialBalance = Number(balanceStr);
+        if (!Number.isInteger(initialBalance) || initialBalance < 0) {
+          throw new Error("invalid");
+        }
+      } catch (e) {
+        results.push({ username, success: false, error: `invalid balance: ${balanceStr}` });
+        failed++;
+        continue;
+      }
+
+      const existing = await User.findOne({ username, teamId });
+      if (existing) {
+        results.push({ username, success: false, error: "username already exists", balance: initialBalance });
+        failed++;
+        continue;
+      }
+
+      const user = await User.create({
+        username,
+        passwordHash,
+        balance: initialBalance,
+        role: "gambler",
+        teamId,
+      });
+
+      results.push({ username, success: true, id: user._id, balance: initialBalance });
+      created++;
+    }
+
+    return res.json({ results, created, failed });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to bulk create users" });
+  }
+});
+
 router.delete("/users/:username", async (req, res) => {
   try {
     const teamId = req.user.teamId;

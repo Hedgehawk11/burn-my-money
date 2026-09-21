@@ -33,6 +33,10 @@ themeBtn.addEventListener("click", () => {
 initTheme();
 
 const createUserForm = document.getElementById("createUserForm");
+const bulkCreateForm = document.getElementById("bulkCreateForm");
+const bulkUsernamesBalance = document.getElementById("bulkUsernamesBalance");
+const bulkDefaultPassword = document.getElementById("bulkDefaultPassword");
+const bulkResults = document.getElementById("bulkResults");
 const deleteUserForm = document.getElementById("deleteUserForm");
 const adjustBalanceForm = document.getElementById("adjustBalanceForm");
 const resolveMatchForm = document.getElementById("resolveMatchForm");
@@ -949,6 +953,58 @@ clearAllBtn.addEventListener("click", async () => {
     notify("All resolved matches cleared", "ok");
     await refreshTeamState();
     await refreshTeamDebts();
+  } catch (error) {
+    notify(error.message, "error");
+  }
+});
+
+bulkCreateForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!requireRole("admin")) {
+    return;
+  }
+
+  const raw = bulkUsernamesBalance.value;
+  const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l !== "");
+
+  if (lines.length === 0) {
+    notify("Enter at least one username,balance pair", "error");
+    return;
+  }
+
+  const defaultPassword = bulkDefaultPassword.value.trim();
+  if (!defaultPassword || defaultPassword.length < 6) {
+    notify("Default password must be at least 6 characters", "error");
+    return;
+  }
+
+  try {
+    const data = await request("/team/users/bulk", {
+      method: "POST",
+      body: JSON.stringify({ usernames: lines, defaultPassword }),
+    });
+
+    const created = data.results.filter((r) => r.success).length;
+    const failed = data.results.filter((r) => !r.success).length;
+    const failedUsernames = data.results
+      .filter((r) => !r.success)
+      .map((r) => r.username)
+      .join(", ");
+
+    bulkResults.textContent =
+      created > 0
+        ? `${created} member(s) created${failed > 0 ? `, ${failed} failed: ${failedUsernames}` : ""}`
+        : `${failed} creation(s) failed: ${failedUsernames}`;
+
+    if (created > 0) {
+      notify(`${created} member(s) created${failed > 0 ? `, ${failed} failed${failedUsernames ? `: ${failedUsernames}` : ""}` : ""}`, "ok");
+      bulkCreateForm.reset();
+    } else {
+      notify(`${failed} creation(s) failed: ${failedUsernames}`, "error");
+    }
+
+    await refreshTeamState();
   } catch (error) {
     notify(error.message, "error");
   }
