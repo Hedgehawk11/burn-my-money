@@ -3,7 +3,7 @@ const config = {
   mongoUri: process.env.MONGODB_URI || "",
   jwtSecret: process.env.JWT_SECRET || "replace-this-secret",
   supervisorUsername: process.env.SUPERVISOR_USERNAME || "Superuser",
-  supervisorPassword: process.env.SUPERVISOR_PASSWORD || "I<3MST3k",
+  supervisorPassword: process.env.SUPERVISOR_PASSWORD || "burner-of-funds",
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
   rateLimitMax: Number(process.env.RATE_LIMIT_MAX || 300),
   loginRateLimitWindowMs: Number(process.env.LOGIN_RATE_LIMIT_WINDOW_MS || 10 * 60 * 1000),
