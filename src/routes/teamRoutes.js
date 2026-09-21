@@ -190,7 +190,7 @@ router.post("/users/bulk", async (req, res) => {
       created++;
     }
 
-    return json({ results, created, failed });
+    return res.json({ results, created, failed });
   } catch (error) {
     return res.status(500).json({ error: "Failed to bulk create users" });
   }

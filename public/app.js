@@ -33,7 +33,7 @@ themeBtn.addEventListener("click", () => {
 initTheme();
 
 const createUserForm = document.getElementById("createUserForm");
-const bulkCreateBtn = document.getElementById("bulkCreateBtn");
+const bulkCreateForm = document.getElementById("bulkCreateForm");
 const bulkUsernamesBalance = document.getElementById("bulkUsernamesBalance");
 const bulkDefaultPassword = document.getElementById("bulkDefaultPassword");
 const bulkResults = document.getElementById("bulkResults");
@@ -595,25 +595,6 @@ function setLoggedInView(isLoggedIn) {
       teamControls.forEach((control) => {
         control.disabled = false;
       });
-
-      // Bulk create section (only inserted once when admin logs in)
-      if (!document.getElementById("bulkCreateSection")) {
-        const bulkCreateSection = document.createElement("div");
-        bulkCreateSection.id = "bulkCreateSection";
-        bulkCreateSection.className = "form-section";
-        bulkCreateSection.style.marginTop = "1.5rem";
-        bulkCreateSection.innerHTML = `
-          <h3>Bulk Create Members</h3>
-          <p style="font-size:0.85rem; color:#666; margin-bottom:0.5rem">Format: <code>username,balance</code> per line</p>
-          <textarea id="bulkUsernamesBalance" rows="4" cols="50" placeholder="john,100\njane,50"></textarea>
-          <br/>
-          <label>Default password for all new members <span style="color:#c00">(min 6 chars)</span>: <input type="password" id="bulkDefaultPassword" minlength="6" required/></label>
-          <br/>
-          <button id="bulkCreateBtn" style="margin-top:0.5rem">Bulk Create Members</button>
-          <div id="bulkResults" style="margin-top:0.5rem; font-size:0.9rem;"></div>
-        `;
-        document.body.appendChild(bulkCreateSection);
-      }
     }
     if (currentUser.role === "superuser") {
       superControls.forEach((control) => {
@@ -977,29 +958,22 @@ clearAllBtn.addEventListener("click", async () => {
   }
 });
 
-bulkCreateBtn.addEventListener("click", async () => {
-  if (!bulkCreateBtn) {
-    return;
-  }
+bulkCreateForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
   if (!requireRole("admin")) {
     return;
   }
 
-  const textarea = document.getElementById("bulkUsernamesBalance");
-  const raw = textarea.value;
-  const lines = raw.split("\n").filter((l) => l.trim() !== "");
+  const raw = bulkUsernamesBalance.value;
+  const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l !== "");
 
   if (lines.length === 0) {
     notify("Enter at least one username,balance pair", "error");
     return;
   }
 
-  const usernames = lines.map((line) => {
-    const parts = line.split(",");
-    return parts[0].trim();
-  });
-
-  const defaultPassword = document.getElementById("bulkDefaultPassword").value.trim();
+  const defaultPassword = bulkDefaultPassword.value.trim();
   if (!defaultPassword || defaultPassword.length < 6) {
     notify("Default password must be at least 6 characters", "error");
     return;
@@ -1008,7 +982,7 @@ bulkCreateBtn.addEventListener("click", async () => {
   try {
     const data = await request("/team/users/bulk", {
       method: "POST",
-      body: JSON.stringify({ usernames, defaultPassword }),
+      body: JSON.stringify({ usernames: lines, defaultPassword }),
     });
 
     const created = data.results.filter((r) => r.success).length;
@@ -1018,13 +992,19 @@ bulkCreateBtn.addEventListener("click", async () => {
       .map((r) => r.username)
       .join(", ");
 
+    bulkResults.textContent =
+      created > 0
+        ? `${created} member(s) created${failed > 0 ? `, ${failed} failed: ${failedUsernames}` : ""}`
+        : `${failed} creation(s) failed: ${failedUsernames}`;
+
     if (created > 0) {
       notify(`${created} member(s) created${failed > 0 ? `, ${failed} failed${failedUsernames ? `: ${failedUsernames}` : ""}` : ""}`, "ok");
+      bulkCreateForm.reset();
     } else {
       notify(`${failed} creation(s) failed: ${failedUsernames}`, "error");
     }
 
-    refreshTeamState();
+    await refreshTeamState();
   } catch (error) {
     notify(error.message, "error");
   }

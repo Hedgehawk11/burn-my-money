@@ -153,6 +153,15 @@
             <button type="submit">Reset Password</button>
           </form>
 
+          <form id="bulkCreateForm" class="form-grid compact panel-block">
+            <h3>Bulk Create Members</h3>
+            <p style="margin:0; font-size:0.85rem; color:var(--ink-soft);">Format: <code>username,balance</code> per line</p>
+            <textarea id="bulkUsernamesBalance" rows="4" placeholder="john,100&#10;jane,50"></textarea>
+            <input type="password" id="bulkDefaultPassword" placeholder="default password" minlength="6" required />
+            <button type="submit" id="bulkCreateBtn">Bulk Create Members</button>
+            <div id="bulkResults" style="font-size:0.9rem;"></div>
+          </form>
+
           <form id="resolveMatchForm" class="form-grid compact panel-block">
             <h3>Resolve Match</h3>
             <select id="resolveMatchId" required></select>
