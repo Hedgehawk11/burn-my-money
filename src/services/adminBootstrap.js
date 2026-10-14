@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+const Bet = require("../models/Bet");
 const SystemState = require("../models/SystemState");
 const config = require("../config");
 
@@ -30,6 +31,11 @@ async function ensureSuperuser() {
 
 async function bootstrapAdmin() {
   await User.syncIndexes();
+  try {
+    await Bet.syncIndexes();
+  } catch (error) {
+    console.warn("Bet indexes not synced (possible duplicate bets); one-bet rule still enforced per request.", error.message);
+  }
   await ensureSystemState();
   await ensureSuperuser();
 }

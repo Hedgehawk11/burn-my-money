@@ -85,12 +85,13 @@ router.post("/bets", async (req, res) => {
     }
 
     const teamId = user.teamId;
+    const existingBet = await Bet.findOne({ matchId, user: user._id });
+    if (existingBet) {
+      return res.status(409).json({ error: "Only one bet per player per match" });
+    }
+
     const state = await getPoolState(teamId ? teamId.toString() : null);
 
-    user.balance -= amount;
-    state.poolBalance += amount;
-
-    await user.save();
     const bet = await Bet.create({
       matchId,
       user: user._id,
@@ -99,6 +100,11 @@ router.post("/bets", async (req, res) => {
       teamId,
       settled: false,
     });
+
+    user.balance -= amount;
+    state.poolBalance += amount;
+
+    await user.save();
     await state.save();
 
     return res.status(201).json({
@@ -107,6 +113,9 @@ router.post("/bets", async (req, res) => {
       poolBalance: state.poolBalance,
     });
   } catch (error) {
+    if (error && error.code === 11000) {
+      return res.status(409).json({ error: "Only one bet per player per match" });
+    }
     return res.status(500).json({ error: "Failed to place bet" });
   }
 });

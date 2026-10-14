@@ -56,6 +56,17 @@ const resetAdminPasswordTeam = document.getElementById("resetAdminPasswordTeam")
 let token = localStorage.getItem("burnmoney-token") || "";
 let currentUser = null;
 let superTeams = [];
+let myBetsCache = [];
+
+function updateBetFormState(activeMatchId) {
+  const controls = betForm.querySelectorAll("select, input, button");
+  const alreadyBet =
+    !!activeMatchId && myBetsCache.some((bet) => bet.matchId === activeMatchId);
+  controls.forEach((control) => {
+    control.disabled = alreadyBet;
+  });
+  betForm.dataset.locked = alreadyBet ? "true" : "";
+}
 
 const usernameInput = document.getElementById("username");
 const teamField = document.getElementById("teamField");
@@ -507,8 +518,10 @@ function renderDebtReport(summary, debts) {
 async function refreshMainData() {
   const me = await request("/api/me");
   const myBets = await request("/api/my-bets");
+  myBetsCache = myBets.bets || [];
   renderAccountStats(me);
-  renderBets(myBets.bets || []);
+  renderBets(myBetsCache);
+  updateBetFormState(me.activeMatchId);
   currentUser.role = me.user.role;
   currentUser.team = me.team;
   matchIdInput.value = me.activeMatchId || "";
@@ -706,6 +719,11 @@ betForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   if (!requireSession()) {
+    return;
+  }
+
+  if (betForm.dataset.locked === "true") {
+    notify("Only one bet per player per match", "error");
     return;
   }
 
