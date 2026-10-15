@@ -303,6 +303,7 @@ function renderBets(bets) {
         <td>${bet.alliance}</td>
         <td>${bet.amount}</td>
         <td>${bet.settled ? "yes" : "no"}</td>
+        <td>${bet.settled || bet.estimatedWinnings === null || bet.estimatedWinnings === undefined ? "—" : bet.estimatedWinnings}</td>
         <td>${new Date(bet.createdAt).toLocaleString()}</td>
       </tr>
     `
@@ -317,6 +318,7 @@ function renderBets(bets) {
           <th>Alliance</th>
           <th>Amount</th>
           <th>Settled</th>
+          <th>Est. Winnings</th>
           <th>Placed At</th>
         </tr>
       </thead>
@@ -568,8 +570,9 @@ async function refreshLiveData() {
     fundsBalance.textContent = me.user.balance;
     fundsPool.textContent = me.poolBalance;
     currentActiveMatch.textContent = me.activeMatchId || "none";
+    const myBets = await request("/api/my-bets");
+    renderBets(myBets.bets || []);
   } catch (error) {
-    // transient errors are ignored; the next poll retries
   }
 }
 

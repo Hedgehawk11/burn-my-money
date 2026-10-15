@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Team = require("../models/Team");
 const { requireAuth } = require("../middleware/auth");
 const { getPoolState } = require("../services/adminBootstrap");
+const { calculateEstimates } = require("../services/estimates");
 
 const router = express.Router();
 
@@ -40,7 +41,32 @@ router.get("/me", async (req, res) => {
 router.get("/my-bets", async (req, res) => {
   try {
     const bets = await Bet.find({ user: req.user.userId }).sort({ createdAt: -1 });
-    return res.json({ bets });
+    const unsettled = bets.filter((bet) => !bet.settled);
+    const estimatesById = new Map();
+    const matchIds = [...new Set(unsettled.map((bet) => bet.matchId))];
+    for (const matchId of matchIds) {
+      const matchBets = unsettled.filter((bet) => bet.matchId === matchId);
+      const teamIds = [...new Set(matchBets.map((bet) => (bet.teamId ? bet.teamId.toString() : "__global")))];
+      for (const teamKey of teamIds) {
+        const teamId = teamKey === "__global" ? null : teamKey;
+        const groupBets = await Bet.find({
+          matchId: { $eq: matchId },
+          teamId: { $eq: teamId },
+          settled: false,
+        });
+        const state = await getPoolState(teamId);
+        const estimates = calculateEstimates({ poolBalance: state.poolBalance, groupBets });
+        for (const [betId, payout] of estimates) {
+          estimatesById.set(betId, payout);
+        }
+      }
+    }
+    return res.json({
+      bets: bets.map((bet) => ({
+        ...bet.toObject(),
+        estimatedWinnings: bet.settled ? null : (estimatesById.get(bet._id.toString()) ?? 0),
+      })),
+    });
   } catch (error) {
     return res.status(500).json({ error: "Failed to load bets" });
   }
