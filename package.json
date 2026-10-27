@@ -1,7 +1,7 @@
 {
   "name": "burn-my-money",
   "version": "1.0.0",
-  "description": "Small FRC gambling API with Joel-only admin controls",
+  "description": "Small FRC gambling API with admin controls",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
